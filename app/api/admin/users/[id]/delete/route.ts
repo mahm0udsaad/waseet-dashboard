@@ -5,8 +5,9 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const auth = await requireRoleForApi(["admin"]);
   if ("error" in auth) return auth.error;
   const supabase = getSupabaseServerClient();
@@ -14,13 +15,13 @@ export async function POST(
   await supabase
     .from("profiles")
     .update({ status: "deleted", banned_until: null })
-    .eq("user_id", params.id);
+    .eq("user_id", id);
 
   await logAdminAction({
     actorId: auth.userId,
     action: "delete_user",
     entity: "profiles",
-    entityId: params.id,
+    entityId: id,
   });
 
   return NextResponse.redirect(request.headers.get("referer") ?? "/users");

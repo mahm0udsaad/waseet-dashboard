@@ -5,8 +5,9 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const auth = await requireRoleForApi(["admin"]);
   if ("error" in auth) return auth.error;
   const supabase = getSupabaseServerClient();
@@ -14,13 +15,13 @@ export async function POST(
   await supabase
     .from("damin_orders")
     .update({ status: "completed" })
-    .eq("id", params.id);
+    .eq("id", id);
 
   await logAdminAction({
     actorId: auth.userId,
     action: "resolve_damin_order",
     entity: "damin_orders",
-    entityId: params.id,
+    entityId: id,
   });
 
   return NextResponse.redirect(request.headers.get("referer") ?? "/damin-orders");

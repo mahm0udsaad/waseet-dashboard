@@ -5,8 +5,9 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const auth = await requireRoleForApi(["admin"]);
   if ("error" in auth) return auth.error;
   const supabase = getSupabaseServerClient();
@@ -15,7 +16,7 @@ export async function PATCH(
   const { error } = await supabase
     .from("promotional_banners")
     .update(payload)
-    .eq("id", params.id);
+    .eq("id", id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
@@ -25,7 +26,7 @@ export async function PATCH(
     actorId: auth.userId,
     action: "update_banner",
     entity: "promotional_banners",
-    entityId: params.id,
+    entityId: id,
     metadata: payload,
   });
 
@@ -34,8 +35,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const auth = await requireRoleForApi(["admin"]);
   if ("error" in auth) return auth.error;
   const supabase = getSupabaseServerClient();
@@ -43,7 +45,7 @@ export async function DELETE(
   const { error } = await supabase
     .from("promotional_banners")
     .delete()
-    .eq("id", params.id);
+    .eq("id", id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
@@ -53,7 +55,7 @@ export async function DELETE(
     actorId: auth.userId,
     action: "delete_banner",
     entity: "promotional_banners",
-    entityId: params.id,
+    entityId: id,
   });
 
   return NextResponse.json({ success: true });

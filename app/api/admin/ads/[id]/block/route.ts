@@ -5,8 +5,9 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const auth = await requireRoleForApi(["admin"]);
   if ("error" in auth) return auth.error;
   const supabase = getSupabaseServerClient();
@@ -18,13 +19,13 @@ export async function POST(
       blocked_at: new Date().toISOString(),
       blocked_by: auth.userId,
     })
-    .eq("id", params.id);
+    .eq("id", id);
 
   await logAdminAction({
     actorId: auth.userId,
     action: "block_ad",
     entity: "ads",
-    entityId: params.id,
+    entityId: id,
   });
 
   return NextResponse.redirect(request.headers.get("referer") ?? "/ads");
