@@ -1,16 +1,25 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL ??
-  process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+function getRequiredEnv(primary: string, fallback?: string) {
+  const value =
+    process.env[primary] ?? (fallback ? process.env[fallback] : undefined);
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Supabase anon env vars are missing.");
+  if (!value) {
+    throw new Error(`Missing required env var: ${primary}`);
+  }
+
+  return value;
 }
+
+const supabaseUrl = getRequiredEnv(
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "EXPO_PUBLIC_SUPABASE_URL"
+);
+const supabaseAnonKey = getRequiredEnv(
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "EXPO_PUBLIC_SUPABASE_ANON_KEY"
+);
 
 export async function getSupabaseAuthServerClient() {
   const cookieStore = await cookies();
