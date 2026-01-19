@@ -17,16 +17,21 @@ export default async function AdsPage() {
     .limit(20);
 
   const rows =
-    ads?.map((ad) => ({
-      ...ad,
-      ownerName: ad.profiles?.display_name ?? "غير معروف",
-      statusBadge: (
-        <Badge
-          label={ad.status === "blocked" ? "محجوب" : "نشط"}
-          tone={ad.status === "blocked" ? "danger" : "success"}
-        />
-      ),
-    })) ?? [];
+    ads?.map((ad) => {
+      const profile = Array.isArray(ad.profiles) 
+        ? ad.profiles[0] 
+        : ad.profiles;
+      return {
+        ...ad,
+        ownerName: profile?.display_name ?? "غير معروف",
+        statusBadge: (
+          <Badge
+            label={ad.status === "blocked" ? "محجوب" : "نشط"}
+            tone={ad.status === "blocked" ? "danger" : "success"}
+          />
+        ),
+      };
+    }) ?? [];
 
   return (
     <>
