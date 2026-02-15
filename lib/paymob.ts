@@ -13,8 +13,8 @@ function envOptional(key: string): string | undefined {
 }
 
 export const paymobConfig = {
-  get apiBase() {
-    return env("PAYMOB_API_BASE");
+  get baseUrl() {
+    return env("PAYMOB_BASE_URL"); // https://ksa.paymob.com
   },
   get secretKey() {
     return env("PAYMOB_SECRET_KEY");
@@ -72,7 +72,7 @@ export interface PaymobIntentionResponse {
 export async function createPaymobIntention(
   input: CreateIntentionInput
 ): Promise<PaymobIntentionResponse> {
-  const url = `${paymobConfig.apiBase}/v1/intention/`;
+  const url = `${paymobConfig.baseUrl}/v1/intention/`;
 
   const body = {
     amount: input.amount,

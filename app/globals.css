@@ -5,7 +5,14 @@
   --foreground: #0f172a;
   --primary: #dc2626; /* Red-600 */
   --primary-foreground: #ffffff;
-  
+
+  /* Admin surfaces */
+  --surface-dark: #1e293b;
+  --surface-dark-2: #0f172a;
+  --surface-light: #f8fafc;
+  --border: #e2e8f0;
+  --brand: #dc2626;
+
   /* Mesh Gradient Colors */
   --gradient-1: #ffecec;
   --gradient-2: #e0f2fe;
