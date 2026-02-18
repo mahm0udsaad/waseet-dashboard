@@ -4,7 +4,7 @@ import { logAdminAction } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
-  const auth = await requireRoleForApi(["admin"]);
+  const auth = await requireRoleForApi(["super_admin"]);
   if ("error" in auth) return auth.error;
   const supabase = getSupabaseServerClient();
 

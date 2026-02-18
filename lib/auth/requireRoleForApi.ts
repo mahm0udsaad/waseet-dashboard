@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAuthServerClient } from "@/lib/supabase/ssr";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import type { AdminRole } from "./permissions";
 
-export type AdminRole = "admin" | "support_agent";
+export type { AdminRole };
 
 export async function requireRoleForApi(allowed: AdminRole[]) {
   const supabase = await getSupabaseAuthServerClient();
@@ -46,4 +47,3 @@ export async function requireRoleForApi(allowed: AdminRole[]) {
 
   return { userId: userData.user.id, role: role as AdminRole };
 }
-

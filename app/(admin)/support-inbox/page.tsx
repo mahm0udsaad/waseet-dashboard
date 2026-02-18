@@ -1,25 +1,45 @@
 import { Badge } from "@/components/admin/Badge";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { PaginationControls } from "@/components/admin/PaginationControls";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { formatDate } from "@/lib/format";
+import { getPaginationRange, parsePageParam } from "@/lib/pagination";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-export default async function SupportInboxPage() {
+const PAGE_SIZE = 20;
+
+type Props = {
+  searchParams: Promise<{ page?: string }>;
+};
+
+export default async function SupportInboxPage({ searchParams }: Props) {
+  const { page: pageParam } = await searchParams;
+  const page = parsePageParam(pageParam);
+  const { from, to } = getPaginationRange(page, PAGE_SIZE);
   const supabase = getSupabaseServerClient();
-  const { data: conversations } = await supabase
-    .from("conversations")
-    .select("id, status, created_at")
-    .eq("status", "open")
-    .order("created_at", { ascending: true })
-    .limit(20);
+  const [{ data: conversations }, { count }] = await Promise.all([
+    supabase
+      .from("conversations")
+      .select("id, status, created_at")
+      .eq("status", "open")
+      .order("created_at", { ascending: true })
+      .range(from, to),
+    supabase
+      .from("conversations")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "open"),
+  ]);
 
   const conversationIds = (conversations ?? []).map((c) => c.id);
-  const { data: messages } = await supabase
-    .from("messages")
-    .select("conversation_id, content, created_at")
-    .in("conversation_id", conversationIds)
-    .order("created_at", { ascending: false })
-    .limit(100);
+  const { data: messages } =
+    conversationIds.length > 0
+      ? await supabase
+          .from("messages")
+          .select("conversation_id, content, created_at")
+          .in("conversation_id", conversationIds)
+          .order("created_at", { ascending: false })
+          .limit(100)
+      : { data: [] };
 
   const lastMessageMap = new Map<string, string>();
   (messages ?? []).forEach((message) => {
@@ -60,6 +80,12 @@ export default async function SupportInboxPage() {
               </div>
             ) : null}
           </div>
+          <PaginationControls
+            pathname="/support-inbox"
+            page={page}
+            pageSize={PAGE_SIZE}
+            totalItems={count ?? 0}
+          />
         </SectionCard>
         <SectionCard
           title="تفاصيل المحادثة"

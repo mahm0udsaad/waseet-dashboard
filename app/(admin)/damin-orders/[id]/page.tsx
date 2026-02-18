@@ -4,6 +4,7 @@ import { Badge } from "@/components/admin/Badge";
 import { ActionButton } from "@/components/admin/ActionButton";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { SectionCard } from "@/components/admin/SectionCard";
+import { ReceiptImage } from "@/components/admin/damin-orders/ReceiptImage";
 import { formatDate, formatNumber } from "@/lib/format";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -15,6 +16,8 @@ const STATUS_MAP: Record<
   pending_confirmations: { label: "بانتظار التأكيد", tone: "warning" },
   both_confirmed: { label: "تم التأكيد", tone: "neutral" },
   payment_submitted: { label: "تم إرسال الدفع", tone: "warning" },
+  awaiting_completion: { label: "بانتظار اكتمال الخدمة", tone: "warning" },
+  completion_requested: { label: "طلب اكتمال", tone: "warning" },
   completed: { label: "مكتمل", tone: "success" },
   cancelled: { label: "ملغي", tone: "danger" },
   disputed: { label: "متنازع عليه", tone: "danger" },
@@ -36,7 +39,6 @@ export default async function DaminOrderDetailPage({ params }: Props) {
 
   if (!order) notFound();
 
-  // Fetch profiles for both parties
   const userIds = [order.payer_user_id, order.beneficiary_user_id, order.creator_id].filter(
     Boolean
   ) as string[];
@@ -61,39 +63,35 @@ export default async function DaminOrderDetailPage({ params }: Props) {
     tone: "neutral" as const,
   };
 
+  const paymentMethod = meta.payment_method;
+  const isCardPayment = paymentMethod === "card_paymob";
+  const isBankTransfer = paymentMethod === "bank_transfer";
+
   // Build timeline
   const timeline: { label: string; date: string | null; tone: "neutral" | "success" | "warning" | "danger" }[] = [
     { label: "تم الإنشاء", date: order.created_at, tone: "neutral" },
     { label: "تأكيد صاحب الطلب", date: order.payer_confirmed_at, tone: "neutral" },
-    {
-      label: "تأكيد مقدم الخدمة",
-      date: order.beneficiary_confirmed_at,
-      tone: "neutral",
-    },
-    {
-      label: "تم إرسال الدفع",
-      date: order.payment_submitted_at,
-      tone: "warning",
-    },
+    { label: "تأكيد مقدم الخدمة", date: order.beneficiary_confirmed_at, tone: "neutral" },
+    { label: "تم إرسال الدفع", date: order.payment_submitted_at, tone: "warning" },
+    { label: "تم التحقق من الدفع (ضمان)", date: order.escrow_deposit_at, tone: "neutral" },
   ];
 
+  if (order.status === "completion_requested") {
+    timeline.push({ label: "طلب اكتمال الخدمة", date: order.updated_at, tone: "warning" });
+  }
   if (order.status === "completed") {
-    timeline.push({ label: "مكتمل", date: order.updated_at, tone: "success" });
+    timeline.push({ label: "مكتمل", date: order.escrow_released_at ?? order.updated_at, tone: "success" });
   }
   if (order.status === "cancelled") {
     timeline.push({ label: "ملغي", date: order.updated_at, tone: "danger" });
   }
   if (order.status === "disputed") {
-    timeline.push({
-      label: "متنازع عليه",
-      date: order.updated_at,
-      tone: "danger",
-    });
+    timeline.push({ label: "متنازع عليه", date: order.updated_at, tone: "danger" });
   }
 
-  const canComplete = order.status === "payment_submitted";
-  const canDispute = ["payment_submitted", "both_confirmed"].includes(order.status);
-  const canCancel = order.status !== "completed";
+  const canVerifyPayment = order.status === "payment_submitted";
+  const canDispute = ["payment_submitted", "both_confirmed", "awaiting_completion"].includes(order.status);
+  const canCancel = !["completed", "cancelled"].includes(order.status);
 
   return (
     <>
@@ -111,13 +109,24 @@ export default async function DaminOrderDetailPage({ params }: Props) {
       />
 
       {/* Status Banner */}
-      <div className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-light)] p-4">
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-light)] p-4">
         <span className="text-sm text-slate-600">الحالة الحالية:</span>
         <Badge label={statusInfo.label} tone={statusInfo.tone} />
+        {paymentMethod && (
+          <>
+            <span className="text-sm text-slate-400">|</span>
+            {isCardPayment ? (
+              <Badge label="بطاقة - تأكيد تلقائي" tone="success" />
+            ) : isBankTransfer ? (
+              <Badge label="تحويل بنكي - مراجعة يدوية" tone="warning" />
+            ) : (
+              <Badge label={paymentMethod} tone="neutral" />
+            )}
+          </>
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Parties Info */}
         <SectionCard title="صاحب الطلب (الدافع)" description="الشخص الذي أنشأ الطلب ويدفع المبلغ.">
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
@@ -137,16 +146,11 @@ export default async function DaminOrderDetailPage({ params }: Props) {
           </dl>
         </SectionCard>
 
-        <SectionCard
-          title="مقدم الخدمة (المستفيد)"
-          description="الشخص الذي يقدم الخدمة ويستلم المبلغ."
-        >
+        <SectionCard title="مقدم الخدمة (المستفيد)" description="الشخص الذي يقدم الخدمة ويستلم المبلغ.">
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
               <dt className="text-slate-500">الاسم</dt>
-              <dd className="text-slate-900">
-                {beneficiaryProfile?.display_name ?? "غير معروف"}
-              </dd>
+              <dd className="text-slate-900">{beneficiaryProfile?.display_name ?? "غير معروف"}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-slate-500">الهاتف</dt>
@@ -155,23 +159,18 @@ export default async function DaminOrderDetailPage({ params }: Props) {
             <div className="flex justify-between">
               <dt className="text-slate-500">تاريخ التأكيد</dt>
               <dd className="text-slate-900">
-                {order.beneficiary_confirmed_at
-                  ? formatDate(order.beneficiary_confirmed_at)
-                  : "لم يتم التأكيد"}
+                {order.beneficiary_confirmed_at ? formatDate(order.beneficiary_confirmed_at) : "لم يتم التأكيد"}
               </dd>
             </div>
           </dl>
         </SectionCard>
       </div>
 
-      {/* Service Details */}
       <SectionCard title="تفاصيل الخدمة">
         <dl className="space-y-3 text-sm">
           <div>
             <dt className="text-slate-500">وصف الخدمة</dt>
-            <dd className="mt-1 whitespace-pre-wrap text-slate-900">
-              {order.service_type_or_details ?? "—"}
-            </dd>
+            <dd className="mt-1 whitespace-pre-wrap text-slate-900">{order.service_type_or_details ?? "—"}</dd>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex justify-between">
@@ -180,15 +179,12 @@ export default async function DaminOrderDetailPage({ params }: Props) {
             </div>
             <div className="flex justify-between">
               <dt className="text-slate-500">مدة الإنجاز (أيام)</dt>
-              <dd className="text-slate-900">
-                {order.completion_days ? formatNumber(order.completion_days) : "—"}
-              </dd>
+              <dd className="text-slate-900">{order.completion_days ? formatNumber(order.completion_days) : "—"}</dd>
             </div>
           </div>
         </dl>
       </SectionCard>
 
-      {/* Financial Breakdown */}
       <SectionCard title="التفاصيل المالية">
         <dl className="space-y-2 text-sm">
           <div className="flex justify-between">
@@ -218,22 +214,30 @@ export default async function DaminOrderDetailPage({ params }: Props) {
         </dl>
       </SectionCard>
 
-      {/* Payment Info (if payment_submitted or later) */}
+      {/* Payment Info */}
       {order.payment_submitted_at && (
-        <SectionCard title="معلومات الدفع" description="بيانات التحويل البنكي.">
+        <SectionCard title="معلومات الدفع" description="بيانات الدفع والتحويل.">
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
               <dt className="text-slate-500">طريقة الدفع</dt>
               <dd className="text-slate-900">
-                {meta.payment_method === "bank_transfer" ? "تحويل بنكي" : (meta.payment_method ?? "—")}
+                {isCardPayment ? (
+                  <Badge label="بطاقة - تأكيد تلقائي" tone="success" />
+                ) : isBankTransfer ? (
+                  "تحويل بنكي"
+                ) : (
+                  meta.payment_method ?? "—"
+                )}
               </dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-slate-500">هاتف التحويل (مرجع التطابق)</dt>
-              <dd className="font-mono text-lg font-semibold text-[var(--brand)]" dir="ltr">
-                {meta.transfer_phone ?? "—"}
-              </dd>
-            </div>
+            {isBankTransfer && (
+              <div className="flex justify-between">
+                <dt className="text-slate-500">هاتف التحويل (مرجع التطابق)</dt>
+                <dd className="font-mono text-lg font-semibold text-[var(--brand)]" dir="ltr">
+                  {meta.transfer_phone ?? "—"}
+                </dd>
+              </div>
+            )}
             <div className="flex justify-between">
               <dt className="text-slate-500">تاريخ إرسال الدفع</dt>
               <dd className="text-slate-900">{formatDate(order.payment_submitted_at)}</dd>
@@ -241,12 +245,17 @@ export default async function DaminOrderDetailPage({ params }: Props) {
             {meta.payment_submitted_at_client && (
               <div className="flex justify-between">
                 <dt className="text-slate-500">تاريخ الإرسال (جهاز العميل)</dt>
-                <dd className="text-slate-900">
-                  {formatDate(meta.payment_submitted_at_client)}
-                </dd>
+                <dd className="text-slate-900">{formatDate(meta.payment_submitted_at_client)}</dd>
               </div>
             )}
           </dl>
+
+          {isBankTransfer && (
+            <div className="mt-4">
+              <p className="mb-2 text-sm font-medium text-slate-700">إيصال التحويل</p>
+              <ReceiptImage receiptUrl={meta.transfer_receipt_url ?? null} />
+            </div>
+          )}
         </SectionCard>
       )}
 
@@ -254,10 +263,7 @@ export default async function DaminOrderDetailPage({ params }: Props) {
       <SectionCard title="مراحل الطلب" description="المخطط الزمني لحالة الطلب.">
         <div className="space-y-3">
           {timeline.map((step) => (
-            <div
-              key={step.label}
-              className="flex items-center gap-3 text-sm"
-            >
+            <div key={step.label} className="flex items-center gap-3 text-sm">
               <div
                 className={`h-2.5 w-2.5 shrink-0 rounded-full ${
                   step.date
@@ -271,24 +277,20 @@ export default async function DaminOrderDetailPage({ params }: Props) {
                     : "bg-slate-200"
                 }`}
               />
-              <span className={step.date ? "text-slate-900" : "text-slate-400"}>
-                {step.label}
-              </span>
-              <span className="text-xs text-slate-400">
-                {step.date ? formatDate(step.date) : "—"}
-              </span>
+              <span className={step.date ? "text-slate-900" : "text-slate-400"}>{step.label}</span>
+              <span className="text-xs text-slate-400">{step.date ? formatDate(step.date) : "—"}</span>
             </div>
           ))}
         </div>
       </SectionCard>
 
       {/* Admin Actions */}
-      {(canComplete || canDispute || canCancel) && (
+      {(canVerifyPayment || canDispute || canCancel) && (
         <SectionCard title="إجراءات الإدارة" description="اتخذ إجراءً على هذا الطلب.">
           <div className="flex flex-wrap gap-3">
-            {canComplete && (
+            {canVerifyPayment && (
               <form action={`/api/admin/damin-orders/${id}/resolve`} method="post">
-                <ActionButton label="تأكيد الدفع وإكمال الطلب" variant="primary" />
+                <ActionButton label="تأكيد الدفع (نقل لانتظار اكتمال الخدمة)" variant="primary" />
               </form>
             )}
             {canDispute && (

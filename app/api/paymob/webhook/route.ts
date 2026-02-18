@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Update payment ──
-  await supabase
+  const { data: updatedPayment } = await supabase
     .from("payments")
     .update({
       status: newStatus,
@@ -153,7 +153,63 @@ export async function POST(request: NextRequest) {
       raw_webhook_payload: payload,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", paymentId);
+    .eq("id", paymentId)
+    .select("metadata")
+    .single();
+
+  // ── On success: move damin_order to awaiting_completion (escrow held) ──
+  if (newStatus === "succeeded" && updatedPayment?.metadata) {
+    const meta = updatedPayment.metadata as Record<string, string>;
+    const orderId = meta.orderId;
+
+    if (orderId) {
+      const { data: order } = await supabase
+        .from("damin_orders")
+        .select("status, payer_user_id, beneficiary_user_id")
+        .eq("id", orderId)
+        .maybeSingle();
+
+      // payment_submitted → awaiting_completion (money in escrow, NOT released)
+      if (order && order.status === "payment_submitted") {
+        await supabase
+          .from("damin_orders")
+          .update({
+            status: "awaiting_completion",
+            escrow_deposit_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", orderId);
+
+        // Notify both parties
+        const notifications = [];
+        if (order.payer_user_id) {
+          notifications.push({
+            recipient_id: order.payer_user_id,
+            type: "damin_payment_verified",
+            title: "تم التحقق من الدفع",
+            body: "تم إيداع المبلغ في الضمان. بانتظار تأكيد اكتمال الخدمة",
+            data: { order_id: orderId },
+            damin_order_id: orderId,
+          });
+        }
+        if (order.beneficiary_user_id) {
+          notifications.push({
+            recipient_id: order.beneficiary_user_id,
+            type: "damin_payment_verified",
+            title: "تم إيداع مبلغ الضمان",
+            body: "تم إيداع المبلغ في الضمان. قم بتقديم الخدمة ثم أكد الاكتمال لاستلام المبلغ",
+            data: { order_id: orderId },
+            damin_order_id: orderId,
+          });
+        }
+        if (notifications.length > 0) {
+          await supabase.from("notifications").insert(notifications);
+        }
+
+        console.log(`[webhook] damin_order ${orderId} → awaiting_completion (escrow held)`);
+      }
+    }
+  }
 
   return NextResponse.json({ received: true });
 }

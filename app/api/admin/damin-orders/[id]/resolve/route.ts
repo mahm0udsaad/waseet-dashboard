@@ -8,7 +8,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const auth = await requireRoleForApi(["admin"]);
+  const auth = await requireRoleForApi(["super_admin", "admin", "finance"]);
   if ("error" in auth) return auth.error;
   const supabase = getSupabaseServerClient();
 
@@ -24,34 +24,42 @@ export async function POST(
 
   if (order.status !== "payment_submitted") {
     return NextResponse.json(
-      { error: "لا يمكن إكمال طلب لم يتم إرسال الدفع فيه" },
+      { error: "لا يمكن التحقق من طلب لم يتم إرسال الدفع فيه" },
       { status: 400 }
     );
   }
 
+  const now = new Date().toISOString();
+
   await supabase
     .from("damin_orders")
-    .update({ status: "completed", updated_at: new Date().toISOString() })
+    .update({
+      status: "awaiting_completion",
+      escrow_deposit_at: now,
+      updated_at: now,
+    })
     .eq("id", id);
 
   // Notify both parties
   const notifications = [];
   if (order.payer_user_id) {
     notifications.push({
-      user_id: order.payer_user_id,
-      type: "damin_order_completed",
-      title: "تم اكتمال طلب الضامن",
-      body: "تم التحقق من الدفع واكتمال الطلب بنجاح",
+      recipient_id: order.payer_user_id,
+      type: "damin_payment_verified",
+      title: "تم التحقق من الدفع",
+      body: "تم التحقق من تحويلك البنكي بنجاح، بانتظار اكتمال الخدمة",
       data: { order_id: id },
+      damin_order_id: id,
     });
   }
   if (order.beneficiary_user_id) {
     notifications.push({
-      user_id: order.beneficiary_user_id,
-      type: "damin_order_completed",
-      title: "تم اكتمال طلب الضامن",
-      body: "تم اكتمال الخدمة وسيتم تحويل المبلغ قريباً",
+      recipient_id: order.beneficiary_user_id,
+      type: "damin_payment_verified",
+      title: "تم التحقق من الدفع",
+      body: "تم تأكيد استلام المبلغ في الضمان، يمكنك البدء بتقديم الخدمة",
       data: { order_id: id },
+      damin_order_id: id,
     });
   }
   if (notifications.length > 0) {
@@ -60,11 +68,13 @@ export async function POST(
 
   await logAdminAction({
     actorId: auth.userId,
-    action: "resolve_damin_order",
+    action: "verify_payment_damin_order",
     entity: "damin_orders",
     entityId: id,
   });
 
-  const referer = request.headers.get("referer");
-  return NextResponse.redirect(referer ?? "/damin-orders");
+  if (request.headers.get("accept")?.includes("application/json")) {
+    return NextResponse.json({ success: true });
+  }
+  return NextResponse.redirect(request.headers.get("referer") ?? "/damin-orders");
 }

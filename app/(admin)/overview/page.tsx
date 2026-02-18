@@ -1,12 +1,23 @@
 import { Badge } from "@/components/admin/Badge";
 import { DataTable } from "@/components/admin/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { PaginationControls } from "@/components/admin/PaginationControls";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { StatCard } from "@/components/admin/StatCard";
 import { formatDate, formatNumber } from "@/lib/format";
+import { getPaginationRange, parsePageParam } from "@/lib/pagination";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-export default async function OverviewPage() {
+const RECENT_USERS_PAGE_SIZE = 5;
+
+type Props = {
+  searchParams: Promise<{ page?: string }>;
+};
+
+export default async function OverviewPage({ searchParams }: Props) {
+  const { page: pageParam } = await searchParams;
+  const page = parsePageParam(pageParam);
+  const { from, to } = getPaginationRange(page, RECENT_USERS_PAGE_SIZE);
   const supabase = getSupabaseServerClient();
 
   const [
@@ -26,6 +37,10 @@ export default async function OverviewPage() {
     daminCompletedCommissions,
     daminPendingAmounts,
     recentUsers,
+    ordersTotal,
+    receiptsTotal,
+    paymentsTotal,
+    paymentsSucceeded,
   ] = await Promise.all([
     supabase.from("profiles").select("user_id", { count: "exact", head: true }),
     supabase
@@ -85,7 +100,14 @@ export default async function OverviewPage() {
       .from("profiles")
       .select("user_id, display_name, email, role, status, created_at")
       .order("created_at", { ascending: false })
-      .limit(5),
+      .range(from, to),
+    supabase.from("orders").select("id", { count: "exact", head: true }),
+    supabase.from("receipts").select("id", { count: "exact", head: true }),
+    supabase.from("payments").select("id", { count: "exact", head: true }),
+    supabase
+      .from("payments")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "succeeded"),
   ]);
 
   const totalRevenue = (daminCompletedCommissions.data ?? []).reduce(
@@ -137,6 +159,21 @@ export default async function OverviewPage() {
       label: "طلبات الضامن",
       value: formatNumber(daminCreated.count ?? 0),
       hint: "تم إنشاؤها",
+    },
+    {
+      label: "الطلبات",
+      value: formatNumber(ordersTotal.count ?? 0),
+      hint: "طلبات المنصة",
+    },
+    {
+      label: "الإيصالات",
+      value: formatNumber(receiptsTotal.count ?? 0),
+      hint: "إيصالات المعاملات",
+    },
+    {
+      label: "المدفوعات الناجحة",
+      value: formatNumber(paymentsSucceeded.count ?? 0),
+      hint: `من أصل ${formatNumber(paymentsTotal.count ?? 0)}`,
     },
   ];
 
@@ -261,6 +298,12 @@ export default async function OverviewPage() {
           ]}
           getRowKey={(row) => row.user_id as string}
           rows={userRows}
+        />
+        <PaginationControls
+          pathname="/overview"
+          page={page}
+          pageSize={RECENT_USERS_PAGE_SIZE}
+          totalItems={usersTotal.count ?? 0}
         />
       </SectionCard>
     </>

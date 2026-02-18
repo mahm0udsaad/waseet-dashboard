@@ -8,7 +8,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const auth = await requireRoleForApi(["admin"]);
+  const auth = await requireRoleForApi(["super_admin", "admin"]);
   if ("error" in auth) return auth.error;
   const supabase = getSupabaseServerClient();
 
@@ -41,6 +41,8 @@ export async function POST(
     entityId: id,
   });
 
-  const referer = request.headers.get("referer");
-  return NextResponse.redirect(referer ?? "/damin-orders");
+  if (request.headers.get("accept")?.includes("application/json")) {
+    return NextResponse.json({ success: true });
+  }
+  return NextResponse.redirect(request.headers.get("referer") ?? "/damin-orders");
 }

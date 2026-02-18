@@ -1,16 +1,32 @@
 import { DataTable } from "@/components/admin/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { PaginationControls } from "@/components/admin/PaginationControls";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { formatDate } from "@/lib/format";
+import { getPaginationRange, parsePageParam } from "@/lib/pagination";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-export default async function AuditLogsPage() {
+const PAGE_SIZE = 50;
+
+type Props = {
+  searchParams: Promise<{ page?: string }>;
+};
+
+export default async function AuditLogsPage({ searchParams }: Props) {
+  const { page: pageParam } = await searchParams;
+  const page = parsePageParam(pageParam);
+  const { from, to } = getPaginationRange(page, PAGE_SIZE);
   const supabase = getSupabaseServerClient();
-  const { data: logs } = await supabase
-    .from("admin_audit_logs")
-    .select("id, actor_id, action, entity, entity_id, created_at")
-    .order("created_at", { ascending: false })
-    .limit(50);
+  const [{ data: logs }, { count }] = await Promise.all([
+    supabase
+      .from("admin_audit_logs")
+      .select("id, actor_id, action, entity, entity_id, created_at")
+      .order("created_at", { ascending: false })
+      .range(from, to),
+    supabase
+      .from("admin_audit_logs")
+      .select("id", { count: "exact", head: true }),
+  ]);
 
   return (
     <>
@@ -18,7 +34,7 @@ export default async function AuditLogsPage() {
         title="سجل التدقيق"
         subtitle="جميع الأنشطة الإدارية الأخيرة."
       />
-      <SectionCard title="السجل" description="آخر 50 إجراء إداري.">
+      <SectionCard title="السجل" description="سجل الأنشطة الإدارية مع تقسيم صفحات.">
         <DataTable
           columns={[
             { key: "action", label: "الإجراء" },
@@ -32,6 +48,12 @@ export default async function AuditLogsPage() {
             },
           ]}
           rows={logs ?? []}
+        />
+        <PaginationControls
+          pathname="/audit-logs"
+          page={page}
+          pageSize={PAGE_SIZE}
+          totalItems={count ?? 0}
         />
       </SectionCard>
     </>

@@ -2,17 +2,35 @@ import { ActionButton } from "@/components/admin/ActionButton";
 import { Badge } from "@/components/admin/Badge";
 import { DataTable } from "@/components/admin/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { PaginationControls } from "@/components/admin/PaginationControls";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { formatDate } from "@/lib/format";
+import { getPaginationRange, parsePageParam } from "@/lib/pagination";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-export default async function SupportAgentsPage() {
+const PAGE_SIZE = 20;
+
+type Props = {
+  searchParams: Promise<{ page?: string }>;
+};
+
+export default async function SupportAgentsPage({ searchParams }: Props) {
+  const { page: pageParam } = await searchParams;
+  const page = parsePageParam(pageParam);
+  const { from, to } = getPaginationRange(page, PAGE_SIZE);
   const supabase = getSupabaseServerClient();
-  const { data: agents } = await supabase
-    .from("profiles")
-    .select("user_id, display_name, email, status, created_at, role")
-    .eq("role", "support_agent")
-    .order("created_at", { ascending: false });
+  const [{ data: agents }, { count }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("user_id, display_name, email, status, created_at, role")
+      .eq("role", "support_agent")
+      .order("created_at", { ascending: false })
+      .range(from, to),
+    supabase
+      .from("profiles")
+      .select("user_id", { count: "exact", head: true })
+      .eq("role", "support_agent"),
+  ]);
 
   const rows =
     agents?.map((agent) => ({
@@ -34,7 +52,7 @@ export default async function SupportAgentsPage() {
       <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <SectionCard
           title="قائمة الوكلاء"
-          description="الوكلاء الحاليون مع حالاتهم."
+          description="الوكلاء الحاليون مع دعم التنقل بين الصفحات."
         >
           <DataTable
             columns={[
@@ -65,6 +83,12 @@ export default async function SupportAgentsPage() {
             ]}
             getRowKey={(row) => row.user_id as string}
             rows={rows}
+          />
+          <PaginationControls
+            pathname="/support-agents"
+            page={page}
+            pageSize={PAGE_SIZE}
+            totalItems={count ?? 0}
           />
         </SectionCard>
         <SectionCard

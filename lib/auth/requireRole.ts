@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { getSupabaseAuthServerClient } from "@/lib/supabase/ssr";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import type { AdminRole } from "./permissions";
 
-export type AdminRole = "admin" | "support_agent";
+export type { AdminRole };
 
 export async function requireRole(allowed: AdminRole[]) {
   const supabase = await getSupabaseAuthServerClient();

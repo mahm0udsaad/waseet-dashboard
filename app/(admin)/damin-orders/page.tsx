@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { Badge } from "@/components/admin/Badge";
 import { DataTable } from "@/components/admin/DataTable";
+import { DaminOrderRowActions } from "@/components/admin/damin-orders/DaminOrderRowActions";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { PaginationControls } from "@/components/admin/PaginationControls";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { StatCard } from "@/components/admin/StatCard";
 import { formatDate, formatNumber } from "@/lib/format";
+import { getPaginationRange, parsePageParam } from "@/lib/pagination";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const STATUS_MAP: Record<string, { label: string; tone: "neutral" | "success" | "warning" | "danger" }> = {
@@ -12,6 +15,8 @@ const STATUS_MAP: Record<string, { label: string; tone: "neutral" | "success" | 
   pending_confirmations: { label: "بانتظار التأكيد", tone: "warning" },
   both_confirmed: { label: "تم التأكيد", tone: "neutral" },
   payment_submitted: { label: "تم إرسال الدفع", tone: "warning" },
+  awaiting_completion: { label: "بانتظار اكتمال الخدمة", tone: "warning" },
+  completion_requested: { label: "طلب اكتمال", tone: "warning" },
   completed: { label: "مكتمل", tone: "success" },
   cancelled: { label: "ملغي", tone: "danger" },
   disputed: { label: "متنازع عليه", tone: "danger" },
@@ -20,6 +25,8 @@ const STATUS_MAP: Record<string, { label: string; tone: "neutral" | "success" | 
 const FILTER_OPTIONS = [
   { value: "all", label: "الكل" },
   { value: "payment_submitted", label: "بانتظار التحقق" },
+  { value: "awaiting_completion", label: "بانتظار اكتمال الخدمة" },
+  { value: "completion_requested", label: "طلب اكتمال" },
   { value: "pending_confirmations", label: "بانتظار التأكيد" },
   { value: "both_confirmed", label: "تم التأكيد" },
   { value: "completed", label: "مكتمل" },
@@ -29,14 +36,18 @@ const FILTER_OPTIONS = [
 ];
 
 type Props = {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; page?: string }>;
 };
 
 export default async function DaminOrdersPage({ searchParams }: Props) {
-  const { status: filterStatus } = await searchParams;
+  const { status: filterStatus, page: pageParam } = await searchParams;
+  const page = parsePageParam(pageParam);
+  const pageSize = 30;
+  const { from, to } = getPaginationRange(page, pageSize);
+  const activeStatus = filterStatus && filterStatus !== "all" ? filterStatus : undefined;
   const supabase = getSupabaseServerClient();
 
-  const [completedSum, pendingSum, totalOrders, pendingCount] = await Promise.all([
+  const [completedSum, pendingSum, totalOrders, pendingCount, completionCount] = await Promise.all([
     supabase
       .from("damin_orders")
       .select("commission")
@@ -52,6 +63,10 @@ export default async function DaminOrdersPage({ searchParams }: Props) {
       .from("damin_orders")
       .select("id", { count: "exact", head: true })
       .eq("status", "payment_submitted"),
+    supabase
+      .from("damin_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "completion_requested"),
   ]);
 
   const totalRevenue = (completedSum.data ?? []).reduce(
@@ -63,20 +78,27 @@ export default async function DaminOrdersPage({ searchParams }: Props) {
     0
   );
 
-  // Fetch orders with optional filter
-  let query = supabase
+  let ordersQuery = supabase
     .from("damin_orders")
     .select(
       "id, creator_id, payer_user_id, beneficiary_user_id, payer_phone, beneficiary_phone, service_type_or_details, service_value, commission, total_amount, status, payment_submitted_at, metadata, created_at"
     )
     .order("created_at", { ascending: false })
-    .limit(50);
+    .range(from, to);
 
-  if (filterStatus && filterStatus !== "all") {
-    query = query.eq("status", filterStatus);
+  let filteredCountQuery = supabase
+    .from("damin_orders")
+    .select("id", { count: "exact", head: true });
+
+  if (activeStatus) {
+    ordersQuery = ordersQuery.eq("status", activeStatus);
+    filteredCountQuery = filteredCountQuery.eq("status", activeStatus);
   }
 
-  const { data: orders } = await query;
+  const [{ data: orders }, { count: filteredCount }] = await Promise.all([
+    ordersQuery,
+    filteredCountQuery,
+  ]);
 
   const userIds = Array.from(
     new Set(
@@ -110,7 +132,8 @@ export default async function DaminOrdersPage({ searchParams }: Props) {
         payerName: profileMap.get(order.payer_user_id ?? "") ?? order.payer_phone ?? "—",
         beneficiaryName:
           profileMap.get(order.beneficiary_user_id ?? "") ?? order.beneficiary_phone ?? "—",
-        transferPhone: meta.transfer_phone ?? "—",
+        paymentMethod: meta.payment_method ?? null,
+        hasReceipt: !!meta.transfer_receipt_url,
         statusBadge: <Badge label={statusInfo.label} tone={statusInfo.tone} />,
       };
     }) ?? [];
@@ -123,7 +146,7 @@ export default async function DaminOrdersPage({ searchParams }: Props) {
       />
 
       {/* Financial KPIs */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
           label="إجمالي الطلبات"
           value={formatNumber(totalOrders.count ?? 0)}
@@ -133,6 +156,11 @@ export default async function DaminOrdersPage({ searchParams }: Props) {
           label="بانتظار التحقق"
           value={formatNumber(pendingCount.count ?? 0)}
           hint="تحتاج إجراء الإدارة"
+        />
+        <StatCard
+          label="طلبات اكتمال"
+          value={formatNumber(completionCount.count ?? 0)}
+          hint="بانتظار مراجعة الاكتمال"
         />
         <StatCard
           label="إيرادات العمولات"
@@ -171,7 +199,7 @@ export default async function DaminOrdersPage({ searchParams }: Props) {
       {/* Orders Table */}
       <SectionCard
         title="قائمة الطلبات"
-        description={`عدد النتائج: ${formatNumber(rows.length)}`}
+        description={`عدد النتائج: ${formatNumber(filteredCount ?? 0)}`}
       >
         <DataTable
           columns={[
@@ -187,17 +215,34 @@ export default async function DaminOrdersPage({ searchParams }: Props) {
                 </Link>
               ),
             },
-            { key: "payerName", label: "صاحب الطلب (الدافع)" },
-            { key: "beneficiaryName", label: "مقدم الخدمة (المستفيد)" },
+            { key: "payerName", label: "الدافع" },
+            { key: "beneficiaryName", label: "المستفيد" },
             {
               key: "service_value",
               label: "قيمة الخدمة",
               render: (row) => `${formatNumber(row.service_value as number)} ر.س`,
             },
             {
-              key: "total_amount",
-              label: "الإجمالي",
-              render: (row) => `${formatNumber(row.total_amount as number)} ر.س`,
+              key: "payment_method",
+              label: "طريقة الدفع",
+              render: (row) => {
+                if (!row.paymentMethod) return <span className="text-slate-400">—</span>;
+                return row.paymentMethod === "card_paymob" ? (
+                  <Badge label="بطاقة" tone="success" />
+                ) : (
+                  <Badge label="تحويل بنكي" tone="warning" />
+                );
+              },
+            },
+            {
+              key: "receipt",
+              label: "إيصال",
+              render: (row) =>
+                row.hasReceipt ? (
+                  <span className="text-xs font-medium text-emerald-600">مرفق</span>
+                ) : (
+                  <span className="text-slate-400">—</span>
+                ),
             },
             {
               key: "status",
@@ -205,23 +250,35 @@ export default async function DaminOrdersPage({ searchParams }: Props) {
               render: (row) => row.statusBadge,
             },
             {
-              key: "transferPhone",
-              label: "هاتف التحويل",
-              render: (row) =>
-                row.status === "payment_submitted" ? (
-                  <span className="font-mono text-xs">{row.transferPhone as string}</span>
-                ) : (
-                  <span className="text-slate-400">—</span>
-                ),
-            },
-            {
               key: "created_at",
               label: "التاريخ",
               render: (row) => formatDate(row.created_at as string),
             },
+            {
+              key: "actions",
+              label: "إجراءات",
+              render: (row) => (
+                <DaminOrderRowActions
+                  orderId={row.id as string}
+                  status={row.status as string}
+                  payerUserId={row.payer_user_id as string | null}
+                  beneficiaryUserId={row.beneficiary_user_id as string | null}
+                  payerName={row.payerName as string}
+                  beneficiaryName={row.beneficiaryName as string}
+                  metadata={(row.metadata ?? {}) as Record<string, string>}
+                />
+              ),
+            },
           ]}
           getRowKey={(row) => row.id as string}
           rows={rows}
+        />
+        <PaginationControls
+          pathname="/damin-orders"
+          page={page}
+          pageSize={pageSize}
+          totalItems={filteredCount ?? 0}
+          query={activeStatus ? { status: activeStatus } : {}}
         />
       </SectionCard>
     </>

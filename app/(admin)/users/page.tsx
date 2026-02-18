@@ -1,18 +1,64 @@
-import { ActionButton } from "@/components/admin/ActionButton";
 import { Badge } from "@/components/admin/Badge";
+import { BroadcastNotificationButton } from "@/components/admin/BroadcastNotificationButton";
 import { DataTable } from "@/components/admin/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { PaginationControls } from "@/components/admin/PaginationControls";
+import { SearchFilter } from "@/components/admin/SearchFilter";
 import { SectionCard } from "@/components/admin/SectionCard";
+import { UserRowActions } from "@/components/admin/users/UserRowActions";
 import { formatDate } from "@/lib/format";
+import { getPaginationRange, parsePageParam } from "@/lib/pagination";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-export default async function UsersPage() {
+const PAGE_SIZE = 20;
+
+const roleLabels: Record<string, string> = {
+  admin: "مدير",
+  support_agent: "وكيل دعم",
+  user: "مستخدم",
+};
+
+type Props = {
+  searchParams: Promise<{
+    page?: string;
+    q?: string;
+    status?: string;
+    role?: string;
+  }>;
+};
+
+export default async function UsersPage({ searchParams }: Props) {
+  const { page: pageParam, q, status, role } = await searchParams;
+  const page = parsePageParam(pageParam);
+  const { from, to } = getPaginationRange(page, PAGE_SIZE);
   const supabase = getSupabaseServerClient();
-  const { data: users } = await supabase
+
+  let query = supabase
     .from("profiles")
-    .select("user_id, display_name, email, role, status, created_at")
-    .order("created_at", { ascending: false })
-    .limit(20);
+    .select("user_id, display_name, email, phone, role, status, created_at");
+
+  let countQuery = supabase
+    .from("profiles")
+    .select("user_id", { count: "exact", head: true });
+
+  if (q) {
+    const filter = `display_name.ilike.%${q}%,email.ilike.%${q}%,phone.ilike.%${q}%`;
+    query = query.or(filter);
+    countQuery = countQuery.or(filter);
+  }
+  if (status) {
+    query = query.eq("status", status);
+    countQuery = countQuery.eq("status", status);
+  }
+  if (role) {
+    query = query.eq("role", role);
+    countQuery = countQuery.eq("role", role);
+  }
+
+  const [{ data: users }, { count }] = await Promise.all([
+    query.order("created_at", { ascending: false }).range(from, to),
+    countQuery,
+  ]);
 
   const rows =
     users?.map((user) => ({
@@ -23,6 +69,7 @@ export default async function UsersPage() {
           tone={user.status === "banned" ? "danger" : "success"}
         />
       ),
+      roleLabel: roleLabels[user.role] ?? user.role,
     })) ?? [];
 
   return (
@@ -31,21 +78,71 @@ export default async function UsersPage() {
         title="المستخدمون"
         subtitle="إدارة حسابات المستخدمين وحالة النشاط."
         actions={
-          <div className="flex flex-wrap gap-2 text-sm">
-            <ActionButton label="تصدير البيانات" />
-            <ActionButton label="فلترة متقدمة" variant="primary" />
+          <div className="flex items-center gap-2">
+            <BroadcastNotificationButton />
+            <a
+              href="/api/admin/export?entity=users&format=csv"
+              className="rounded-full border border-[var(--border)] px-3 py-1 text-xs text-slate-700"
+            >
+              تصدير البيانات
+            </a>
           </div>
         }
       />
+
+      <div className="mb-4">
+        <SearchFilter
+          pathname="/users"
+          currentQuery={{ q, status, role }}
+          fields={[
+            {
+              key: "q",
+              label: "بحث",
+              type: "text",
+              placeholder: "الاسم أو البريد الإلكتروني أو رقم الجوال",
+            },
+            {
+              key: "status",
+              label: "الحالة",
+              type: "select",
+              options: [
+                { value: "active", label: "نشط" },
+                { value: "banned", label: "محظور" },
+                { value: "deleted", label: "محذوف" },
+              ],
+            },
+            {
+              key: "role",
+              label: "الدور",
+              type: "select",
+              options: [
+                { value: "user", label: "مستخدم" },
+                { value: "admin", label: "مدير" },
+                { value: "support_agent", label: "وكيل دعم" },
+              ],
+            },
+          ]}
+        />
+      </div>
+
       <SectionCard
         title="قائمة المستخدمين"
-        description="عرض آخر 20 حساباً مع إمكانية اتخاذ الإجراءات."
+        description="إدارة حسابات المستخدمين مع تنقل سريع بين الصفحات."
       >
         <DataTable
           columns={[
             { key: "display_name", label: "الاسم" },
             { key: "email", label: "البريد الإلكتروني" },
-            { key: "role", label: "الدور" },
+            {
+              key: "phone",
+              label: "رقم الجوال",
+              render: (row) => (row.phone as string) ?? "—",
+            },
+            {
+              key: "role",
+              label: "الدور",
+              render: (row) => row.roleLabel as string,
+            },
             {
               key: "status",
               label: "الحالة",
@@ -60,28 +157,22 @@ export default async function UsersPage() {
               key: "actions",
               label: "إجراءات",
               render: (row) => (
-                <div className="flex flex-wrap gap-2">
-                  <form action={`/api/admin/users/${row.user_id}/ban`} method="post">
-                    <ActionButton label="حظر" variant="danger" />
-                  </form>
-                  <form
-                    action={`/api/admin/users/${row.user_id}/unban`}
-                    method="post"
-                  >
-                    <ActionButton label="إلغاء الحظر" />
-                  </form>
-                  <form
-                    action={`/api/admin/users/${row.user_id}/delete`}
-                    method="post"
-                  >
-                    <ActionButton label="حذف" variant="danger" />
-                  </form>
-                </div>
+                <UserRowActions
+                  userId={row.user_id as string}
+                  displayName={row.display_name as string}
+                  status={row.status as string}
+                />
               ),
             },
           ]}
           getRowKey={(row) => row.user_id as string}
           rows={rows}
+        />
+        <PaginationControls
+          pathname="/users"
+          page={page}
+          pageSize={PAGE_SIZE}
+          totalItems={count ?? 0}
         />
       </SectionCard>
     </>
