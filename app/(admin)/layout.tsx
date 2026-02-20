@@ -96,7 +96,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         count = result.count ?? 0;
       } else if (path === "/sliders") {
         const result = await supabase
-          .from("banners")
+          .from("home_sliders")
           .select("id", { count: "exact", head: true })
           .gt("created_at", since);
         count = result.count ?? 0;

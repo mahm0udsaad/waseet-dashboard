@@ -14,7 +14,7 @@ export async function PATCH(
 
   const payload = await request.json();
   const { error } = await supabase
-    .from("promotional_banners")
+    .from("home_sliders")
     .update(payload)
     .eq("id", id);
 
@@ -25,7 +25,7 @@ export async function PATCH(
   await logAdminAction({
     actorId: auth.userId,
     action: "update_banner",
-    entity: "promotional_banners",
+    entity: "home_sliders",
     entityId: id,
     metadata: payload,
   });
@@ -43,7 +43,7 @@ export async function DELETE(
   const supabase = getSupabaseServerClient();
 
   const { error } = await supabase
-    .from("promotional_banners")
+    .from("home_sliders")
     .delete()
     .eq("id", id);
 
@@ -54,7 +54,7 @@ export async function DELETE(
   await logAdminAction({
     actorId: auth.userId,
     action: "delete_banner",
-    entity: "promotional_banners",
+    entity: "home_sliders",
     entityId: id,
   });
 

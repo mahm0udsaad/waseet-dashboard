@@ -14,7 +14,7 @@ export default async function EditSliderPage({ params }: Props) {
   const supabase = getSupabaseServerClient();
 
   const { data: banner } = await supabase
-    .from("promotional_banners")
+    .from("home_sliders")
     .select("*")
     .eq("id", id)
     .maybeSingle();

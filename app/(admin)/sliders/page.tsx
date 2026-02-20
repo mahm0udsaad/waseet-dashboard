@@ -40,17 +40,17 @@ export default async function SlidersPage({ searchParams }: Props) {
 
   const [{ data: banners }, { count }, activeResult] = await Promise.all([
     supabase
-      .from("promotional_banners")
+      .from("home_sliders")
       .select(
         "id, title_ar, title_en, subtitle_ar, badge_ar, use_image, gradient_palette, icon_name, sort_order, is_active, created_at"
       )
       .order("sort_order", { ascending: true })
       .range(from, to),
     supabase
-      .from("promotional_banners")
+      .from("home_sliders")
       .select("id", { count: "exact", head: true }),
     supabase
-      .from("promotional_banners")
+      .from("home_sliders")
       .select("id", { count: "exact", head: true })
       .eq("is_active", true),
   ]);

@@ -143,6 +143,14 @@ export default async function DaminOrdersPage({ searchParams }: Props) {
       <PageHeader
         title="طلبات الضامن"
         subtitle="متابعة الطلبات حسب الحالة والمبالغ."
+        actions={
+          <a
+            href="/api/admin/export?entity=damin_orders"
+            className="rounded-full border border-[var(--border)] px-4 py-2 text-sm text-slate-700 transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
+          >
+            تصدير CSV
+          </a>
+        }
       />
 
       {/* Financial KPIs */}

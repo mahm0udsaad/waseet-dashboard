@@ -11,6 +11,7 @@ export const ADMIN_NAV_ITEMS = [
   { href: "/chats", label: "المحادثات" },
   { href: "/support-inbox", label: "صندوق دعم وسيط" },
   { href: "/sliders", label: "السلايدر" },
+  { href: "/withdrawals", label: "طلبات السحب" },
   { href: "/settings", label: "الإعدادات" },
   { href: "/audit-logs", label: "سجل التدقيق" },
 ] as const;
@@ -27,6 +28,7 @@ export const TRACKED_BADGE_PATHS = [
   "/chats",
   "/support-inbox",
   "/sliders",
+  "/withdrawals",
   "/settings",
   "/audit-logs",
 ] as const;

@@ -19,6 +19,7 @@ export const ROLE_NAV_ACCESS: Record<AdminRole, string[]> = {
     "/chats",
     "/support-inbox",
     "/sliders",
+    "/withdrawals",
     "/settings",
     "/audit-logs",
   ],
@@ -35,6 +36,7 @@ export const ROLE_NAV_ACCESS: Record<AdminRole, string[]> = {
     "/chats",
     "/support-inbox",
     "/sliders",
+    "/withdrawals",
     "/audit-logs",
   ],
   finance: [
@@ -42,6 +44,7 @@ export const ROLE_NAV_ACCESS: Record<AdminRole, string[]> = {
     "/damin-orders",
     "/completion-requests",
     "/payments",
+    "/withdrawals",
     "/receipts",
   ],
   support_agent: [

@@ -29,6 +29,7 @@ export function DaminOrderRowActions({
   const router = useRouter();
   const [showCancel, setShowCancel] = useState(false);
   const [showVerify, setShowVerify] = useState(false);
+  const [showComplete, setShowComplete] = useState(false);
   const [showNotify, setShowNotify] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -78,8 +79,26 @@ export function DaminOrderRowActions({
     }
   }
 
+  async function handleComplete() {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/admin/damin-orders/${orderId}/complete`, {
+        method: "POST",
+        headers: { accept: "application/json" },
+      });
+      if (!res.ok) throw new Error("Failed");
+      setShowComplete(false);
+      router.refresh();
+    } catch {
+      // keep modal open
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   const canCancel = status !== "completed" && status !== "cancelled";
   const canVerify = status === "payment_submitted" && metadata?.payment_method === "bank_transfer";
+  const canComplete = status === "awaiting_completion" || status === "payment_submitted";
 
   const items = [
     { label: "عرض التفاصيل", href: `/damin-orders/${orderId}` },
@@ -89,6 +108,9 @@ export function DaminOrderRowActions({
     },
     ...(canVerify
       ? [{ label: "تأكيد الدفع", onClick: () => setShowVerify(true) }]
+      : []),
+    ...(canComplete
+      ? [{ label: "إكمال الطلب", onClick: () => setShowComplete(true) }]
       : []),
     ...(recipients.length > 0
       ? [{ label: "إرسال إشعار", onClick: () => setShowNotify(true) }]
@@ -115,6 +137,17 @@ export function DaminOrderRowActions({
         title="تأكيد الدفع"
         message="هل تم التحقق من إيصال التحويل البنكي؟ سيتم تأكيد استلام المبلغ في الضمان."
         confirmLabel="تأكيد الدفع"
+        variant="warning"
+        loading={actionLoading}
+      />
+
+      <ConfirmationModal
+        open={showComplete}
+        onClose={() => setShowComplete(false)}
+        onConfirm={handleComplete}
+        title="إكمال الطلب"
+        message="سيتم إكمال الطلب وإطلاق المبلغ لمقدم الخدمة. هل أنت متأكد؟"
+        confirmLabel="إكمال الطلب"
         variant="warning"
         loading={actionLoading}
       />

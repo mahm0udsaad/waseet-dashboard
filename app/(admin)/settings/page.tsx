@@ -1,6 +1,7 @@
 import { ActionButton } from "@/components/admin/ActionButton";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { SectionCard } from "@/components/admin/SectionCard";
+import { CommissionSettings } from "@/components/admin/settings/CommissionSettings";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function SettingsPage() {
@@ -62,6 +63,13 @@ export default async function SettingsPage() {
           </form>
         </SectionCard>
       </section>
+
+      {/* Commission Settings */}
+      <PageHeader
+        title="إعدادات العمولة"
+        subtitle="إدارة نسب العمولة والضريبة لكل نوع خدمة. التغييرات تؤثر فقط على الطلبات الجديدة."
+      />
+      <CommissionSettings />
     </>
   );
 }

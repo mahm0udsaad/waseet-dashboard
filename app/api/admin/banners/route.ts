@@ -20,7 +20,6 @@ export async function POST(request: Request) {
       subtitle_en: body.subtitle_en || null,
       badge_ar: body.badge_ar ?? "",
       badge_en: body.badge_en || null,
-      image_path: body.image_path || null,
       gradient_from: body.gradient_from || null,
       gradient_to: body.gradient_to || null,
       gradient_palette: body.gradient_palette || null,
@@ -39,7 +38,6 @@ export async function POST(request: Request) {
       subtitle_en: String(formData.get("subtitle_en") ?? "") || null,
       badge_ar: String(formData.get("badge_ar") ?? ""),
       badge_en: String(formData.get("badge_en") ?? "") || null,
-      image_path: String(formData.get("image_path") ?? "") || null,
       gradient_from: String(formData.get("gradient_from") ?? "") || null,
       gradient_to: String(formData.get("gradient_to") ?? "") || null,
       gradient_palette: String(formData.get("gradient_palette") ?? "") || null,
@@ -52,7 +50,7 @@ export async function POST(request: Request) {
   }
 
   const { data, error } = await supabase
-    .from("promotional_banners")
+    .from("home_sliders")
     .insert(payload)
     .select("id")
     .single();
@@ -64,7 +62,7 @@ export async function POST(request: Request) {
   await logAdminAction({
     actorId: auth.userId,
     action: "create_banner",
-    entity: "promotional_banners",
+    entity: "home_sliders",
     entityId: data.id,
     metadata: payload,
   });

@@ -4,6 +4,7 @@ import { Badge } from "@/components/admin/Badge";
 import { ActionButton } from "@/components/admin/ActionButton";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { SectionCard } from "@/components/admin/SectionCard";
+import { DisputeChat } from "@/components/admin/damin-orders/DisputeChat";
 import { ReceiptImage } from "@/components/admin/damin-orders/ReceiptImage";
 import { formatDate, formatNumber } from "@/lib/format";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -86,11 +87,13 @@ export default async function DaminOrderDetailPage({ params }: Props) {
     timeline.push({ label: "ملغي", date: order.updated_at, tone: "danger" });
   }
   if (order.status === "disputed") {
-    timeline.push({ label: "متنازع عليه", date: order.updated_at, tone: "danger" });
+    timeline.push({ label: "متنازع عليه", date: order.disputed_at ?? order.updated_at, tone: "danger" });
   }
 
   const canVerifyPayment = order.status === "payment_submitted";
-  const canDispute = ["payment_submitted", "both_confirmed", "awaiting_completion"].includes(order.status);
+  const canComplete = ["awaiting_completion", "payment_submitted"].includes(order.status);
+  const canDispute = ["payment_submitted", "both_confirmed", "awaiting_completion", "completion_requested"].includes(order.status);
+  const canResolveDispute = order.status === "disputed";
   const canCancel = !["completed", "cancelled"].includes(order.status);
 
   return (
@@ -215,7 +218,7 @@ export default async function DaminOrderDetailPage({ params }: Props) {
       </SectionCard>
 
       {/* Payment Info */}
-      {order.payment_submitted_at && (
+      {(order.payment_submitted_at || order.escrow_deposit_at || paymentMethod) && (
         <SectionCard title="معلومات الدفع" description="بيانات الدفع والتحويل.">
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
@@ -246,6 +249,20 @@ export default async function DaminOrderDetailPage({ params }: Props) {
               <div className="flex justify-between">
                 <dt className="text-slate-500">تاريخ الإرسال (جهاز العميل)</dt>
                 <dd className="text-slate-900">{formatDate(meta.payment_submitted_at_client)}</dd>
+              </div>
+            )}
+            {isCardPayment && meta.paymob_payment_id && (
+              <div className="flex justify-between">
+                <dt className="text-slate-500">معرف عملية Paymob</dt>
+                <dd className="font-mono text-sm text-slate-900" dir="ltr">
+                  {meta.paymob_payment_id}
+                </dd>
+              </div>
+            )}
+            {isCardPayment && meta.payment_completed_at && (
+              <div className="flex justify-between">
+                <dt className="text-slate-500">تاريخ تأكيد الدفع (Paymob)</dt>
+                <dd className="text-slate-900">{formatDate(meta.payment_completed_at)}</dd>
               </div>
             )}
           </dl>
@@ -284,8 +301,31 @@ export default async function DaminOrderDetailPage({ params }: Props) {
         </div>
       </SectionCard>
 
+      {/* Dispute Info & Chat */}
+      {order.status === "disputed" && (
+        <>
+          {order.dispute_reason && (
+            <SectionCard title="معلومات النزاع">
+              <dl className="space-y-2 text-sm">
+                <div>
+                  <dt className="text-slate-500">سبب النزاع</dt>
+                  <dd className="mt-1 whitespace-pre-wrap text-slate-900">{order.dispute_reason}</dd>
+                </div>
+                {order.disputed_at && (
+                  <div className="flex justify-between">
+                    <dt className="text-slate-500">تاريخ فتح النزاع</dt>
+                    <dd className="text-slate-900">{formatDate(order.disputed_at)}</dd>
+                  </div>
+                )}
+              </dl>
+            </SectionCard>
+          )}
+          <DisputeChat orderId={id} />
+        </>
+      )}
+
       {/* Admin Actions */}
-      {(canVerifyPayment || canDispute || canCancel) && (
+      {(canVerifyPayment || canComplete || canDispute || canResolveDispute || canCancel) && (
         <SectionCard title="إجراءات الإدارة" description="اتخذ إجراءً على هذا الطلب.">
           <div className="flex flex-wrap gap-3">
             {canVerifyPayment && (
@@ -293,12 +333,29 @@ export default async function DaminOrderDetailPage({ params }: Props) {
                 <ActionButton label="تأكيد الدفع (نقل لانتظار اكتمال الخدمة)" variant="primary" />
               </form>
             )}
+            {canComplete && (
+              <form action={`/api/admin/damin-orders/${id}/complete`} method="post">
+                <ActionButton label="إكمال الطلب (إطلاق المبلغ)" variant="primary" />
+              </form>
+            )}
+            {canResolveDispute && (
+              <>
+                <form action={`/api/admin/damin-orders/${id}/resolve-dispute`} method="post">
+                  <input type="hidden" name="resolution" value="completed" />
+                  <ActionButton label="حل النزاع: إكمال وإطلاق المبلغ" variant="primary" />
+                </form>
+                <form action={`/api/admin/damin-orders/${id}/resolve-dispute`} method="post">
+                  <input type="hidden" name="resolution" value="cancelled" />
+                  <ActionButton label="حل النزاع: إلغاء واسترداد" variant="danger" />
+                </form>
+              </>
+            )}
             {canDispute && (
               <form action={`/api/admin/damin-orders/${id}/dispute`} method="post">
                 <ActionButton label="فتح نزاع" variant="outline" />
               </form>
             )}
-            {canCancel && order.status !== "cancelled" && (
+            {canCancel && order.status !== "cancelled" && !canResolveDispute && (
               <form action={`/api/admin/damin-orders/${id}/cancel`} method="post">
                 <ActionButton label="إلغاء الطلب" variant="danger" />
               </form>

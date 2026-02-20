@@ -22,7 +22,7 @@ export async function POST(
     return NextResponse.json({ error: "الطلب غير موجود" }, { status: 404 });
   }
 
-  if (!["payment_submitted", "both_confirmed"].includes(order.status)) {
+  if (!["payment_submitted", "both_confirmed", "awaiting_completion", "completion_requested"].includes(order.status)) {
     return NextResponse.json(
       { error: "لا يمكن فتح نزاع على هذا الطلب" },
       { status: 400 }
