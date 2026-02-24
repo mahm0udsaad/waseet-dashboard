@@ -28,6 +28,7 @@ export async function POST(request: Request) {
       email: string;
       phone: string;
     };
+    paymentMethod?: "apple_pay" | "card";
     metadata?: Record<string, unknown>;
   };
 
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { amountSar, customer, metadata } = body;
+  const { amountSar, customer, paymentMethod, metadata } = body;
 
   if (!amountSar || typeof amountSar !== "number" || amountSar <= 0) {
     return NextResponse.json(
@@ -82,10 +83,15 @@ export async function POST(request: Request) {
 
   // ── Call Paymob Intention API ──
   try {
+    const integrationId =
+      paymentMethod === "apple_pay"
+        ? paymobConfig.integrationIdApplePay
+        : paymobConfig.integrationIdCard;
+
     const intentionRes = await createPaymobIntention({
       amount: amountMinor,
       currency: paymobConfig.currency,
-      paymentMethods: [paymobConfig.integrationIdCard],
+      paymentMethods: [integrationId],
       billingData: {
         first_name: customer.firstName,
         last_name: customer.lastName,

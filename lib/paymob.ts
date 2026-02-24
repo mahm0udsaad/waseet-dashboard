@@ -25,6 +25,9 @@ export const paymobConfig = {
   get integrationIdCard() {
     return parseInt(env("PAYMOB_INTEGRATION_ID_CARD"), 10);
   },
+  get integrationIdApplePay() {
+    return parseInt(env("PAYMOB_INTEGRATION_ID_APPLE_PAY"), 10);
+  },
   get currency() {
     return env("PAYMOB_CURRENCY");
   },
