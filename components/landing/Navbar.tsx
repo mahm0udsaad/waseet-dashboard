@@ -32,7 +32,7 @@ export function Navbar() {
           <Link href="/" className="flex items-center gap-2 group">
             <div className="relative size-10 overflow-hidden rounded-xl">
                <Image
-                  src="/KAFEL.png"
+                  src="/icon-main.png"
                   alt="وسيط الآن"
                   width={40}
                   height={40}
