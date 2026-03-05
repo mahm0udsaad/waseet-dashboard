@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge } from "@/components/admin/Badge";
 import { DataTable } from "@/components/admin/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
@@ -138,12 +139,20 @@ export default async function AdsPage({ searchParams }: Props) {
         title="الإعلانات"
         subtitle="إدارة الإعلانات وحالة النشر."
         actions={
-          <a
-            href="/api/admin/export?entity=ads&format=csv"
-            className="rounded-full border border-[var(--border)] px-3 py-1 text-xs text-slate-700"
-          >
-            تصدير البيانات
-          </a>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/ads/reorder"
+              className="rounded-full border border-[var(--border)] px-3 py-1 text-xs text-slate-700 hover:bg-slate-50"
+            >
+              ترتيب الإعلانات
+            </Link>
+            <a
+              href="/api/admin/export?entity=ads&format=csv"
+              className="rounded-full border border-[var(--border)] px-3 py-1 text-xs text-slate-700"
+            >
+              تصدير البيانات
+            </a>
+          </div>
         }
       />
 

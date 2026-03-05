@@ -71,6 +71,18 @@ export default async function ReceiptsPage({ searchParams }: Props) {
     (profiles ?? []).map((p) => [p.user_id, p.display_name])
   );
 
+  // Generate signed URLs for PDFs (chat bucket is private)
+  const pdfPaths = (receipts ?? []).map((r) => r.pdf_path).filter(Boolean) as string[];
+  const signedUrlMap = new Map<string, string>();
+  if (pdfPaths.length > 0) {
+    const { data: signedUrls } = await supabase.storage
+      .from("chat")
+      .createSignedUrls(pdfPaths, 60 * 60); // 1 hour expiry
+    (signedUrls ?? []).forEach(({ path, signedUrl }) => {
+      if (path && signedUrl) signedUrlMap.set(path, signedUrl);
+    });
+  }
+
   const rows =
     receipts?.map((receipt) => {
       const statusInfo = STATUS_MAP[receipt.status ?? "draft"] ?? {
@@ -82,6 +94,7 @@ export default async function ReceiptsPage({ searchParams }: Props) {
         sellerName: profileMap.get(receipt.seller_id ?? "") ?? "—",
         buyerName: profileMap.get(receipt.buyer_id ?? "") ?? "—",
         statusBadge: <Badge label={statusInfo.label} tone={statusInfo.tone} />,
+        pdfUrl: receipt.pdf_path ? (signedUrlMap.get(receipt.pdf_path) ?? null) : null,
       };
     }) ?? [];
 
@@ -154,9 +167,9 @@ export default async function ReceiptsPage({ searchParams }: Props) {
               key: "pdf_path",
               label: "PDF",
               render: (row) =>
-                row.pdf_path ? (
+                row.pdfUrl ? (
                   <a
-                    href={row.pdf_path as string}
+                    href={row.pdfUrl as string}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[var(--brand)] underline underline-offset-2 text-xs"

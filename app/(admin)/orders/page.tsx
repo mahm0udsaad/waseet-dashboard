@@ -6,6 +6,7 @@ import { PaginationControls } from "@/components/admin/PaginationControls";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { StatCard } from "@/components/admin/StatCard";
 import { OrderRowActions } from "@/components/admin/orders/OrderRowActions";
+import { ReceiptImage } from "@/components/admin/damin-orders/ReceiptImage";
 import { formatDate, formatNumber } from "@/lib/format";
 import { getPaginationRange, parsePageParam } from "@/lib/pagination";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -15,6 +16,7 @@ const STATUS_MAP: Record<
   { label: string; tone: "neutral" | "success" | "warning" | "danger" }
 > = {
   pending_payment: { label: "بانتظار الدفع", tone: "warning" },
+  awaiting_admin_transfer_approval: { label: "بانتظار تأكيد التحويل", tone: "warning" },
   paid: { label: "تم الدفع", tone: "neutral" },
   completed: { label: "مكتمل", tone: "success" },
   cancelled: { label: "ملغي", tone: "danger" },
@@ -22,6 +24,7 @@ const STATUS_MAP: Record<
 
 const FILTER_OPTIONS = [
   { value: "all", label: "الكل" },
+  { value: "awaiting_admin_transfer_approval", label: "بانتظار تأكيد التحويل" },
   { value: "pending_payment", label: "بانتظار الدفع" },
   { value: "paid", label: "تم الدفع" },
   { value: "completed", label: "مكتمل" },
@@ -61,10 +64,15 @@ export default async function OrdersPage({ searchParams }: Props) {
     0
   );
 
+  const transferApprovalCount = await supabase
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "awaiting_admin_transfer_approval");
+
   let ordersQuery = supabase
     .from("orders")
     .select(
-      "id, buyer_id, seller_id, ad_id, conversation_id, receipt_id, amount, currency, status, created_at"
+      "id, buyer_id, seller_id, ad_id, conversation_id, receipt_id, amount, currency, status, payment_method, transfer_phone, transfer_receipt_url, transfer_submitted_at, created_at"
     )
     .order("created_at", { ascending: false })
     .range(from, to);
@@ -115,6 +123,7 @@ export default async function OrdersPage({ searchParams }: Props) {
         buyerName: profileMap.get(order.buyer_id ?? "") ?? "—",
         sellerName: profileMap.get(order.seller_id ?? "") ?? "—",
         statusBadge: <Badge label={statusInfo.label} tone={statusInfo.tone} />,
+        isBankTransfer: order.payment_method === "bank_transfer",
       };
     }) ?? [];
 
@@ -133,11 +142,16 @@ export default async function OrdersPage({ searchParams }: Props) {
         }
       />
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
           label="إجمالي الطلبات"
           value={formatNumber(totalOrders.count ?? 0)}
           hint="كل الطلبات"
+        />
+        <StatCard
+          label="بانتظار تأكيد التحويل"
+          value={formatNumber(transferApprovalCount.count ?? 0)}
+          hint="تحتاج إجراء الإدارة"
         />
         <StatCard
           label="بانتظار الدفع"
@@ -194,9 +208,12 @@ export default async function OrdersPage({ searchParams }: Props) {
               key: "id",
               label: "المعرف",
               render: (row) => (
-                <span className="font-mono text-xs">
+                <Link
+                  href={`/orders/${row.id}`}
+                  className="text-[var(--brand)] underline underline-offset-2 font-mono text-xs"
+                >
                   {(row.id as string).slice(0, 8)}...
-                </span>
+                </Link>
               ),
             },
             { key: "buyerName", label: "المشتري" },
@@ -206,6 +223,30 @@ export default async function OrdersPage({ searchParams }: Props) {
               label: "المبلغ",
               render: (row) =>
                 `${formatNumber(row.amount as number)} ${row.currency as string}`,
+            },
+            {
+              key: "payment_method",
+              label: "طريقة الدفع",
+              render: (row) => {
+                if (!row.payment_method) return <span className="text-slate-400">—</span>;
+                return row.payment_method === "bank_transfer" ? (
+                  <Badge label="تحويل بنكي" tone="warning" />
+                ) : (
+                  <Badge label="بطاقة" tone="success" />
+                );
+              },
+            },
+            {
+              key: "receipt",
+              label: "إيصال التحويل",
+              render: (row) =>
+                row.transfer_receipt_url ? (
+                  <ReceiptImage receiptUrl={row.transfer_receipt_url as string} />
+                ) : row.isBankTransfer ? (
+                  <span className="text-xs text-rose-500">لم يُرفق</span>
+                ) : (
+                  <span className="text-slate-400">—</span>
+                ),
             },
             {
               key: "status",
@@ -230,6 +271,7 @@ export default async function OrdersPage({ searchParams }: Props) {
                   sellerName={row.sellerName as string}
                   conversationId={row.conversation_id as string | null}
                   receiptId={row.receipt_id as string | null}
+                  paymentMethod={row.payment_method as string | null}
                 />
               ),
             },
