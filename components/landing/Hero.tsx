@@ -1,6 +1,7 @@
 "use client";
 
 import { PhoneFrame } from "@/components/PhoneFrame";
+import { IOS_APP_STORE_URL } from "@/lib/app-links";
 import { motion } from "framer-motion";
 import { ShieldCheck, ArrowDown, Users } from "lucide-react";
 import Image from "next/image";
@@ -54,8 +55,9 @@ export function Hero() {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12">
               <Link 
-                href="https://apps.apple.com" 
+                href={IOS_APP_STORE_URL}
                 target="_blank"
+                rel="noopener noreferrer"
                 className="group bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition-all hover:scale-105 shadow-xl shadow-gray-900/10 flex items-center gap-3 border border-gray-800"
               >
                  <img src="https://www.svgrepo.com/show/452159/app-store.svg" alt="App Store" className="w-8 h-8 filter invert" />
@@ -67,7 +69,8 @@ export function Hero() {
               
               <Link 
                 href="https://play.google.com"
-                target="_blank" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="group bg-white text-gray-900 px-6 py-3 rounded-xl hover:bg-gray-50 transition-all hover:scale-105 shadow-lg shadow-gray-200/50 border border-gray-200 flex items-center gap-3"
               >
                  <img src="https://www.svgrepo.com/show/452223/google-play.svg" alt="Google Play" className="w-8 h-8" />

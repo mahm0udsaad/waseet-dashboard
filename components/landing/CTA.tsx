@@ -1,5 +1,6 @@
 "use client";
 
+import { IOS_APP_STORE_URL } from "@/lib/app-links";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
@@ -29,8 +30,9 @@ export function CTA() {
                     
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
                         <Link 
-                            href="https://apps.apple.com" 
+                            href={IOS_APP_STORE_URL}
                             target="_blank"
+                            rel="noopener noreferrer"
                             className="bg-white text-gray-900 px-8 py-4 rounded-2xl hover:bg-gray-100 transition-all hover:scale-105 shadow-xl shadow-black/20 flex items-center gap-4 w-full sm:w-auto justify-center sm:justify-start"
                         >
                             <img src="https://www.svgrepo.com/show/452159/app-store.svg" alt="App Store" className="w-10 h-10" />
@@ -43,6 +45,7 @@ export function CTA() {
                         <Link 
                             href="https://play.google.com" 
                             target="_blank"
+                            rel="noopener noreferrer"
                             className="bg-transparent border-2 border-white/20 text-white px-8 py-4 rounded-2xl hover:bg-white/10 transition-all hover:scale-105 flex items-center gap-4 w-full sm:w-auto justify-center sm:justify-start"
                         >
                             <img src="https://www.svgrepo.com/show/452223/google-play.svg" alt="Google Play" className="w-10 h-10" />

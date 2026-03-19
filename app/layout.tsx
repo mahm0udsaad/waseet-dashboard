@@ -11,7 +11,7 @@ const cairo = Cairo({
 
 const APP_NAME = "وسيط الآن";
 const APP_DESCRIPTION = "المنصة الأولى والآمنة لخدمات التنازل، التعقيب، والخدمات العامة في المملكة العربية السعودية. نضمن حقوقك المالية والقانونية.";
-const APP_URL = "https://waseetalaan.com"; 
+const APP_URL = "https://www.wasitalan.com";
 
 export const viewport: Viewport = {
   themeColor: "#dc2626",
