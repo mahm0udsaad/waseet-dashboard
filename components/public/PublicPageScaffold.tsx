@@ -59,7 +59,7 @@ export function PublicAdPage({ ad, type }: { ad: PublicAd; type: PublicAdType })
               href={appUrl}
               className="rounded-2xl bg-white px-5 py-4 text-center text-sm font-semibold text-gray-950 transition hover:bg-gray-100"
             >
-              Open in App
+              عرض في التطبيق
             </Link>
             <Link
               href="#download"
