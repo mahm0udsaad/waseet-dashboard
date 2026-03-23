@@ -1,4 +1,7 @@
-import { ANDROID_SHA256_FINGERPRINT } from "@/lib/app-links";
+import {
+  ANDROID_PACKAGE_NAME,
+  ANDROID_SHA256_FINGERPRINT,
+} from "@/lib/app-links";
 
 export const dynamic = "force-static";
 
@@ -9,7 +12,7 @@ export async function GET() {
         relation: ["delegate_permission/common.handle_all_urls"],
         target: {
           namespace: "android_app",
-          package_name: "com.mahm09d.kafel",
+          package_name: ANDROID_PACKAGE_NAME,
           sha256_cert_fingerprints: [ANDROID_SHA256_FINGERPRINT],
         },
       },

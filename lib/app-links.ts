@@ -1,5 +1,5 @@
 const DEFAULT_SITE_URL = "https://www.wasitalan.com";
-const ANDROID_PACKAGE_NAME = "com.mahm09d.kafel";
+export const ANDROID_PACKAGE_NAME = "com.mahm09d.kafel";
 
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? DEFAULT_SITE_URL;

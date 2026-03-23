@@ -2,11 +2,17 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PublicAdPage } from "@/components/public/PublicPageScaffold";
 import { SITE_URL, buildListingUrl } from "@/lib/app-links";
-import { buildAdDescription, buildAdTitle, getPublicAd } from "@/lib/public-content";
+import {
+  buildListingMetaDescription,
+  buildListingMetaTitle,
+  getPublicAd,
+} from "@/lib/public-content";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
@@ -19,14 +25,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const title = buildAdTitle(ad);
-  const description = buildAdDescription(ad);
+  const title = buildListingMetaTitle(ad);
+  const description = buildListingMetaDescription(ad);
   const url = buildListingUrl("tanazul", ad.id);
-  const image = `${SITE_URL}/og/listing?type=tanazul&title=${encodeURIComponent(
+  const fallbackImage = `${SITE_URL}/og/listing?type=tanazul&title=${encodeURIComponent(
     title
   )}&price=${encodeURIComponent(ad.price?.toString() ?? "")}&location=${encodeURIComponent(
     ad.location ?? ""
   )}`;
+  const image = ad.imageUrl || fallbackImage;
 
   return {
     title,

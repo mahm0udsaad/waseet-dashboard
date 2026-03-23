@@ -1,7 +1,7 @@
 "use client";
 
 import { PhoneFrame } from "@/components/PhoneFrame";
-import { IOS_APP_STORE_URL } from "@/lib/app-links";
+import { GOOGLE_PLAY_URL, IOS_APP_STORE_URL } from "@/lib/app-links";
 import { motion } from "framer-motion";
 import { ShieldCheck, ArrowDown, Users } from "lucide-react";
 import Image from "next/image";
@@ -58,26 +58,48 @@ export function Hero() {
                 href={IOS_APP_STORE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition-all hover:scale-105 shadow-xl shadow-gray-900/10 flex items-center gap-3 border border-gray-800"
+                className="group flex min-h-[96px] w-full max-w-[340px] items-center justify-between rounded-[1.6rem] border border-[#111827] bg-black px-8 py-5 text-white shadow-[0_20px_50px_rgba(15,23,42,0.16)] transition-all hover:scale-[1.02] hover:bg-[#111111] sm:w-auto"
               >
-                 <img src="https://www.svgrepo.com/show/452159/app-store.svg" alt="App Store" className="w-8 h-8 filter invert" />
-                 <div className="text-right">
-                    <div className="text-[10px] font-medium opacity-80 leading-tight">Download on the</div>
-                    <div className="text-lg font-bold leading-tight">App Store</div>
-                 </div>
+                <div className="text-left">
+                  <div className="text-xs font-medium uppercase tracking-[0.08em] text-white/75">
+                    Download on the
+                  </div>
+                  <div className="mt-1 text-[2rem] font-bold leading-none tracking-tight">
+                    App Store
+                  </div>
+                </div>
+                <Image
+                  src="https://www.svgrepo.com/show/452159/app-store.svg"
+                  alt="App Store"
+                  width={54}
+                  height={54}
+                  className="h-[54px] w-[54px] rounded-full"
+                  unoptimized
+                />
               </Link>
               
               <Link 
-                href="https://play.google.com"
+                href={GOOGLE_PLAY_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group bg-white text-gray-900 px-6 py-3 rounded-xl hover:bg-gray-50 transition-all hover:scale-105 shadow-lg shadow-gray-200/50 border border-gray-200 flex items-center gap-3"
+                className="group flex min-h-[96px] w-full max-w-[340px] items-center justify-between rounded-[1.6rem] border border-[#d7dce5] bg-white px-8 py-5 text-gray-900 shadow-[0_20px_50px_rgba(148,163,184,0.18)] transition-all hover:scale-[1.02] hover:bg-[#fbfdff] sm:w-auto"
               >
-                 <img src="https://www.svgrepo.com/show/452223/google-play.svg" alt="Google Play" className="w-8 h-8" />
-                 <div className="text-right">
-                    <div className="text-[10px] font-medium text-gray-500 leading-tight">GET IT ON</div>
-                    <div className="text-lg font-bold leading-tight">Google Play</div>
-                 </div>
+                <div className="text-left">
+                  <div className="text-xs font-medium uppercase tracking-[0.08em] text-gray-500">
+                    Get it on
+                  </div>
+                  <div className="mt-1 text-[2rem] font-bold leading-none tracking-tight">
+                    Google Play
+                  </div>
+                </div>
+                <Image
+                  src="https://www.svgrepo.com/show/452223/google-play.svg"
+                  alt="Google Play"
+                  width={54}
+                  height={54}
+                  className="h-[54px] w-[54px]"
+                  unoptimized
+                />
               </Link>
             </div>
           </motion.div>

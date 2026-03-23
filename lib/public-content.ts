@@ -86,17 +86,28 @@ export function buildAdTitle(ad: PublicAd) {
   return ad.title;
 }
 
-export function buildAdDescription(ad: PublicAd) {
-  const parts: string[] = [];
+function getShortDescription(ad: PublicAd) {
+  const description = cleanText(ad.description);
+  if (description) return truncateText(description, 110);
 
   if (ad.type === "tanazul") {
     const profession =
       cleanText(ad.metadata.profession_label_ar) ||
       cleanText(ad.metadata.profession);
-    if (profession) parts.push(profession);
+    if (profession) return truncateText(profession, 110);
+  }
+
+  return "اعرض التفاصيل في وسيط الآن";
+}
+
+export function buildAdDescription(ad: PublicAd) {
+  const parts: string[] = [];
+
+  if (ad.type === "tanazul") {
+    const shortDescription = getShortDescription(ad);
+    if (shortDescription) parts.push(shortDescription);
   } else {
-    const summary = cleanText(ad.description);
-    if (summary) parts.push(summary);
+    parts.push(getShortDescription(ad));
   }
 
   const price = formatMoney(ad.price);
@@ -105,6 +116,34 @@ export function buildAdDescription(ad: PublicAd) {
   if (ad.location) parts.push(ad.location);
 
   return truncateText(parts.join(" • ") || "اعرض التفاصيل في وسيط الآن", 160);
+}
+
+export function buildListingMetaTitle(ad: PublicAd) {
+  const title = buildAdTitle(ad);
+  const price = formatMoney(ad.price);
+  const parts =
+    ad.type === "tanazul"
+      ? [title, price, ad.location]
+      : [title, ad.location, price];
+
+  return truncateText(
+    parts.filter((value): value is string => Boolean(value && value.trim())).join(" • ") ||
+      title,
+    110
+  );
+}
+
+export function buildListingMetaDescription(ad: PublicAd) {
+  const parts =
+    ad.type === "tanazul"
+      ? [getShortDescription(ad)]
+      : [getShortDescription(ad), ad.location, formatMoney(ad.price)];
+
+  return truncateText(
+    parts.filter((value): value is string => Boolean(value && value.trim())).join(" • ") ||
+      "اعرض التفاصيل في وسيط الآن",
+    160
+  );
 }
 
 function mapAd(ad: RawAd): PublicAd {
