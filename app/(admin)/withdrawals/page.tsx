@@ -192,14 +192,25 @@ export default async function WithdrawalsPage({ searchParams }: Props) {
             {
               key: "iban",
               label: "IBAN",
-              render: (row) => (
-                <span className="font-mono text-xs" dir="ltr">
-                  {row.iban as string}
-                </span>
-              ),
+              render: (row) => {
+                const iban = row.iban as string;
+                if (!iban) return <span className="text-slate-300">—</span>;
+                const masked = iban.slice(0, 4) + "••••••••" + iban.slice(-4);
+                return (
+                  <span className="font-mono text-xs" dir="ltr" title={iban}>
+                    {masked}
+                  </span>
+                );
+              },
             },
             { key: "bank_name", label: "البنك" },
-            { key: "account_holder_name", label: "صاحب الحساب" },
+            {
+              key: "account_holder_name",
+              label: "صاحب الحساب",
+              render: (row) => (
+                <span className="text-sm">{row.account_holder_name as string ?? "—"}</span>
+              ),
+            },
             {
               key: "status",
               label: "الحالة",

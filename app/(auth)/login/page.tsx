@@ -1,15 +1,36 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useTransition, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+
+const ERROR_MESSAGES: Record<string, string> = {
+  unauthorized: "ليس لديك صلاحية للوصول إلى لوحة التحكم",
+  forbidden: "صلاحيات غير كافية للوصول إلى هذه الصفحة",
+};
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam && ERROR_MESSAGES[errorParam]) {
+      setError(ERROR_MESSAGES[errorParam]);
+    }
+  }, [searchParams]);
 
   async function sendOTP(e: React.FormEvent) {
     e.preventDefault();

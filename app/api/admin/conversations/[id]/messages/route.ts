@@ -6,7 +6,7 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireRoleForApi(["admin", "support_agent"]);
+  const auth = await requireRoleForApi(["super_admin", "admin", "support_agent"]);
   if ("error" in auth) return auth.error;
 
   const { id } = await params;

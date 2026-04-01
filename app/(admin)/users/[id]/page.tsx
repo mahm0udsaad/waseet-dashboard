@@ -9,8 +9,11 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 
 const roleLabels: Record<string, string> = {
+  super_admin: "مدير أعلى",
   admin: "مدير",
+  finance: "مالية",
   support_agent: "وكيل دعم",
+  viewer: "مشاهد",
   user: "مستخدم",
 };
 
@@ -44,37 +47,37 @@ export default async function UserDetailPage({ params }: Props) {
       .select("id, title, type, status, price, created_at")
       .eq("owner_id", id)
       .order("created_at", { ascending: false })
-      .limit(5),
+      .limit(20),
     supabase
       .from("conversation_members")
       .select("conversation_id, conversations!inner(id, type, status, created_at)")
       .eq("user_id", id)
       .order("joined_at", { ascending: false })
-      .limit(5),
+      .limit(20),
     supabase
       .from("orders")
       .select("id, amount, currency, status, created_at, buyer_id, seller_id")
       .or(`buyer_id.eq.${id},seller_id.eq.${id}`)
       .order("created_at", { ascending: false })
-      .limit(5),
+      .limit(20),
     supabase
       .from("damin_orders")
       .select("id, total_amount, status, created_at, payer_user_id, beneficiary_user_id")
       .or(`payer_user_id.eq.${id},beneficiary_user_id.eq.${id}`)
       .order("created_at", { ascending: false })
-      .limit(5),
+      .limit(20),
     supabase
       .from("receipts")
       .select("id, amount, currency, status, created_at, buyer_id, seller_id")
       .or(`buyer_id.eq.${id},seller_id.eq.${id}`)
       .order("created_at", { ascending: false })
-      .limit(5),
+      .limit(20),
     supabase
       .from("notifications")
       .select("id, type, title, read_at, created_at")
       .eq("recipient_id", id)
       .order("created_at", { ascending: false })
-      .limit(5),
+      .limit(20),
   ]);
 
   const typeLabels: Record<string, string> = {
@@ -94,13 +97,34 @@ export default async function UserDetailPage({ params }: Props) {
       <SectionCard
         title="معلومات الحساب"
         actions={
-          <UserRowActions
-            userId={user.user_id}
-            displayName={user.display_name}
-            status={user.status}
-          />
+          <div className="flex items-center gap-2">
+            <UserRowActions
+              userId={user.user_id}
+              displayName={user.display_name}
+              status={user.status}
+            />
+          </div>
         }
       >
+        <div className="flex items-center gap-4 mb-4 pb-4 border-b border-[var(--border)]">
+          {user.avatar_url ? (
+            <img
+              src={user.avatar_url}
+              alt=""
+              className="h-16 w-16 rounded-full object-cover border-2 border-[var(--border)]"
+            />
+          ) : (
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-400">
+              {user.display_name?.charAt(0) ?? "?"}
+            </div>
+          )}
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">{user.display_name}</h3>
+            {user.phone && (
+              <p className="text-sm text-slate-500" dir="ltr">+{user.phone}</p>
+            )}
+          </div>
+        </div>
         <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <dt className="text-xs text-slate-500">الاسم</dt>

@@ -10,19 +10,23 @@ type DataTableProps<Row> = {
   columns: Column<Row>[];
   rows: Row[];
   getRowKey?: (row: Row, index: number) => string;
+  emptyMessage?: string;
+  emptyIcon?: string;
 };
 
 export function DataTable<Row extends Record<string, unknown>>({
   columns,
   rows,
   getRowKey,
+  emptyMessage = "لا توجد بيانات حالياً.",
+  emptyIcon,
 }: DataTableProps<Row>) {
   return (
     <div className="space-y-3">
       {rows.map((row, index) => (
         <div
           key={getRowKey ? getRowKey(row, index) : `row-${index}`}
-          className="flex flex-col gap-2 rounded-xl border border-[var(--border)] p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+          className="flex flex-col gap-2 rounded-xl border border-[var(--border)] p-3 text-sm transition hover:border-[var(--brand)]/20 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
         >
           {columns.map((column) => {
             const isActionsColumn = column.key === "actions";
@@ -53,18 +57,19 @@ export function DataTable<Row extends Record<string, unknown>>({
                 >
                   {column.render
                     ? column.render(row)
-                    : (row[column.key] as ReactNode)}
+                    : (row[column.key] as ReactNode) ?? <span className="text-slate-300">—</span>}
                 </div>
               </div>
             );
           })}
         </div>
       ))}
-      {rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center text-sm text-slate-500">
-          لا توجد بيانات حالياً.
+      {rows.length === 0 && (
+        <div className="rounded-xl border border-dashed border-[var(--border)] p-8 text-center">
+          {emptyIcon && <p className="mb-2 text-2xl">{emptyIcon}</p>}
+          <p className="text-sm text-slate-500">{emptyMessage}</p>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

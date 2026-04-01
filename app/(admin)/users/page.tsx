@@ -13,8 +13,11 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 const PAGE_SIZE = 20;
 
 const roleLabels: Record<string, string> = {
+  super_admin: "مدير أعلى",
   admin: "مدير",
+  finance: "مالية",
   support_agent: "وكيل دعم",
+  viewer: "مشاهد",
   user: "مستخدم",
 };
 
@@ -117,8 +120,11 @@ export default async function UsersPage({ searchParams }: Props) {
               type: "select",
               options: [
                 { value: "user", label: "مستخدم" },
+                { value: "super_admin", label: "مدير أعلى" },
                 { value: "admin", label: "مدير" },
+                { value: "finance", label: "مالية" },
                 { value: "support_agent", label: "وكيل دعم" },
+                { value: "viewer", label: "مشاهد" },
               ],
             },
           ]}

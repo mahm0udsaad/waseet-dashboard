@@ -1,5 +1,6 @@
 export const ADMIN_NAV_ITEMS = [
   { href: "/overview", label: "نظرة عامة" },
+  { href: "/team", label: "إدارة الفريق" },
   { href: "/users", label: "المستخدمون" },
   { href: "/support-agents", label: "وكلاء الدعم" },
   { href: "/ads", label: "الإعلانات" },

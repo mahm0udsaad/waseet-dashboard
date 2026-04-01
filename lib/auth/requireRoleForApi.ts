@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAuthServerClient } from "@/lib/supabase/ssr";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type { AdminRole } from "./permissions";
+import { ADMIN_ROLES } from "./permissions";
 
 export type { AdminRole };
 
@@ -20,29 +21,15 @@ export async function requireRoleForApi(allowed: AdminRole[]) {
     .eq("user_id", userData.user.id)
     .maybeSingle();
 
-  let role: AdminRole | "user" = (profile?.role ?? "user") as AdminRole | "user";
+  const role = (profile?.role ?? "user") as string;
 
-  // Auto-assign admin role if profile doesn't exist or has user role
-  if (!profile || role === "user") {
-    if (!profile) {
-      await adminClient.from("profiles").upsert({
-        user_id: userData.user.id,
-        display_name: userData.user.phone || userData.user.email || "Admin",
-        email: userData.user.email,
-        role: "admin",
-        status: "active",
-      });
-    } else {
-      await adminClient
-        .from("profiles")
-        .update({ role: "admin" })
-        .eq("user_id", userData.user.id);
-    }
-    role = "admin";
+  // Only allow users who have been explicitly assigned an admin role
+  if (!ADMIN_ROLES.includes(role as AdminRole)) {
+    return { error: NextResponse.json({ error: "غير مصرح — ليس لديك صلاحية" }, { status: 403 }) };
   }
 
   if (!allowed.includes(role as AdminRole)) {
-    return { error: NextResponse.json({ error: "غير مصرح" }, { status: 403 }) };
+    return { error: NextResponse.json({ error: "غير مصرح — صلاحيات غير كافية" }, { status: 403 }) };
   }
 
   return { userId: userData.user.id, role: role as AdminRole };

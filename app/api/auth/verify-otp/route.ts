@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAuthServerClient } from "@/lib/supabase/ssr";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { ADMIN_ROLES, type AdminRole } from "@/lib/auth/permissions";
 
 export async function POST(request: Request) {
   try {
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Ensure user has admin role in profile
+    // Check if user has an admin role — do NOT auto-promote
     const adminClient = getSupabaseServerClient();
     const { data: existingProfile } = await adminClient
       .from("profiles")
@@ -34,21 +35,15 @@ export async function POST(request: Request) {
       .eq("user_id", data.user.id)
       .maybeSingle();
 
-    if (!existingProfile) {
-      // Create profile with admin role
-      await adminClient.from("profiles").upsert({
-        user_id: data.user.id,
-        display_name: data.user.phone || "Admin",
-        email: data.user.email,
-        role: "admin",
-        status: "active",
-      });
-    } else if (existingProfile.role !== "admin" && existingProfile.role !== "support_agent") {
-      // Update existing profile to admin
-      await adminClient
-        .from("profiles")
-        .update({ role: "admin" })
-        .eq("user_id", data.user.id);
+    const role = existingProfile?.role ?? "user";
+
+    if (!ADMIN_ROLES.includes(role as AdminRole)) {
+      // Sign them out — they are not an admin
+      await supabase.auth.signOut();
+      return NextResponse.json(
+        { error: "ليس لديك صلاحية للوصول إلى لوحة التحكم" },
+        { status: 403 }
+      );
     }
 
     return NextResponse.json({ success: true, user: data.user });
