@@ -6,8 +6,8 @@ import { logAdminAction } from "@/lib/supabase/admin";
 
 
 // GET — list all team members (users with admin roles)
-export async function GET() {
-  const auth = await requireRoleForApi(["super_admin", "admin"]);
+export async function GET(request: Request) {
+  const auth = await requireRoleForApi(["super_admin", "admin"], request);
   if ("error" in auth) return auth.error;
 
   const supabase = getSupabaseServerClient();
@@ -26,7 +26,7 @@ export async function GET() {
 
 // POST — assign role to a user (promote to admin)
 export async function POST(request: Request) {
-  const auth = await requireRoleForApi(["super_admin", "admin"]);
+  const auth = await requireRoleForApi(["super_admin", "admin"], request);
   if ("error" in auth) return auth.error;
 
   const { userId, role } = await request.json();
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
 
 // PATCH — remove admin role (demote to user)
 export async function PATCH(request: Request) {
-  const auth = await requireRoleForApi(["super_admin", "admin"]);
+  const auth = await requireRoleForApi(["super_admin", "admin"], request);
   if ("error" in auth) return auth.error;
 
   const { userId } = await request.json();

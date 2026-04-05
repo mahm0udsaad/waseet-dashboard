@@ -44,7 +44,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const auth = await requireRoleForApi(["super_admin", "admin", "finance"]);
+  const auth = await requireRoleForApi(["super_admin", "admin", "finance"], request);
   if ("error" in auth) return auth.error;
   const supabase = getSupabaseServerClient();
 

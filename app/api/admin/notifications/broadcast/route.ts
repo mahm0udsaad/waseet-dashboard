@@ -5,7 +5,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { sendExpoPushNotifications } from "@/lib/push";
 
 export async function POST(request: Request) {
-  const auth = await requireRoleForApi(["super_admin", "admin"]);
+  const auth = await requireRoleForApi(["super_admin", "admin"], request);
   if ("error" in auth) return auth.error;
 
   const body = await request.json();

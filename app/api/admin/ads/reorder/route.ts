@@ -3,7 +3,7 @@ import { requireRoleForApi } from "@/lib/auth/requireRoleForApi";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
-  const auth = await requireRoleForApi(["super_admin", "admin"]);
+  const auth = await requireRoleForApi(["super_admin", "admin"], request);
   if ("error" in auth) return auth.error;
 
   const body = await request.json();

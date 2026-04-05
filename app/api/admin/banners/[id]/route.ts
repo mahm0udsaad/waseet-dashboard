@@ -8,7 +8,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const auth = await requireRoleForApi(["super_admin", "admin"]);
+  const auth = await requireRoleForApi(["super_admin", "admin"], request);
   if ("error" in auth) return auth.error;
   const supabase = getSupabaseServerClient();
 
@@ -38,7 +38,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const auth = await requireRoleForApi(["super_admin", "admin"]);
+  const auth = await requireRoleForApi(["super_admin", "admin"], request);
   if ("error" in auth) return auth.error;
   const supabase = getSupabaseServerClient();
 

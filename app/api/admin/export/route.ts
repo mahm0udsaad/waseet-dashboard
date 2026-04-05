@@ -41,7 +41,7 @@ const ENTITY_CONFIG: Record<
 };
 
 export async function GET(request: Request) {
-  const auth = await requireRoleForApi(["super_admin", "admin", "finance"]);
+  const auth = await requireRoleForApi(["super_admin", "admin", "finance"], request);
   if ("error" in auth) return auth.error;
 
   const url = new URL(request.url);

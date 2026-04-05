@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     "finance",
     "support_agent",
     "viewer",
-  ]);
+  ], request);
   if ("error" in auth) return auth.error;
 
   let page = "";

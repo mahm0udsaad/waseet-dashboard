@@ -3,8 +3,8 @@ import { requireRoleForApi } from "@/lib/auth/requireRoleForApi";
 import { logAdminAction } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-export async function GET() {
-  const auth = await requireRoleForApi(["super_admin"]);
+export async function GET(request: Request) {
+  const auth = await requireRoleForApi(["super_admin"], request);
   if ("error" in auth) return auth.error;
 
   const supabase = getSupabaseServerClient();
@@ -21,7 +21,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const auth = await requireRoleForApi(["super_admin"]);
+  const auth = await requireRoleForApi(["super_admin"], request);
   if ("error" in auth) return auth.error;
 
   const body = await request.json();

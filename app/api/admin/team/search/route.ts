@@ -4,7 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 // GET — search users by name/phone to add to team
 export async function GET(request: Request) {
-  const auth = await requireRoleForApi(["super_admin", "admin"]);
+  const auth = await requireRoleForApi(["super_admin", "admin"], request);
   if ("error" in auth) return auth.error;
 
   const { searchParams } = new URL(request.url);
