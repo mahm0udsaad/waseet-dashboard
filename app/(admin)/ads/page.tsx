@@ -24,11 +24,12 @@ type Props = {
     q?: string;
     type?: string;
     status?: string;
+    ad_id?: string;
   }>;
 };
 
 export default async function AdsPage({ searchParams }: Props) {
-  const { page: pageParam, q, type, status } = await searchParams;
+  const { page: pageParam, q, type, status, ad_id } = await searchParams;
   const page = parsePageParam(pageParam);
   const { from, to } = getPaginationRange(page, PAGE_SIZE);
   const supabase = getSupabaseServerClient();
@@ -41,6 +42,10 @@ export default async function AdsPage({ searchParams }: Props) {
     .from("ads")
     .select("id", { count: "exact", head: true });
 
+  if (ad_id) {
+    query = query.eq("id", ad_id);
+    countQuery = countQuery.eq("id", ad_id);
+  }
   if (q) {
     query = query.ilike("title", `%${q}%`);
     countQuery = countQuery.ilike("title", `%${q}%`);
