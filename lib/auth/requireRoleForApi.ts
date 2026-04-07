@@ -41,16 +41,9 @@ export async function requireRoleForApi(allowed: AdminRole[], _request: Request)
     },
   });
 
-  // Debug: log cookie names to diagnose missing session
-  const allCookies = cookieStore.getAll();
-  const cookieNames = allCookies.map((c) => c.name);
-  const authCookies = cookieNames.filter((n) => n.startsWith("sb-"));
-  console.log("[requireRoleForApi] cookies:", cookieNames.length, "total,", authCookies.length, "auth. names:", authCookies.join(", ") || "NONE");
-
   const { data: userData, error: userError } = await supabase.auth.getUser();
 
   if (userError || !userData.user) {
-    console.error("[requireRoleForApi] auth failed:", userError?.message ?? "no user", "| auth cookies:", authCookies.join(", ") || "NONE");
     return { error: NextResponse.json({ error: "غير مصرح" }, { status: 401 }) };
   }
 

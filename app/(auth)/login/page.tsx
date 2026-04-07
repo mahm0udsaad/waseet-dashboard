@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -19,9 +19,8 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
-  const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -32,47 +31,25 @@ function LoginForm() {
     }
   }, [searchParams]);
 
-  async function sendOTP(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     startTransition(async () => {
       try {
-        const res = await fetch("/api/auth/send-otp", {
+        const res = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone }),
+          body: JSON.stringify({ email, password }),
         });
         const data = await res.json();
         if (!res.ok) {
-          setError(data.error || "فشل إرسال رمز التحقق");
-          return;
-        }
-        setStep("otp");
-      } catch (err) {
-        setError("حدث خطأ أثناء إرسال رمز التحقق");
-      }
-    });
-  }
-
-  async function verifyOTP(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    startTransition(async () => {
-      try {
-        const res = await fetch("/api/auth/verify-otp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone, token: otp }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          setError(data.error || "رمز التحقق غير صحيح");
+          setError(data.error || "فشل تسجيل الدخول");
           return;
         }
         router.push("/overview");
         router.refresh();
-      } catch (err) {
-        setError("حدث خطأ أثناء التحقق");
+      } catch {
+        setError("حدث خطأ أثناء تسجيل الدخول");
       }
     });
   }
@@ -84,9 +61,7 @@ function LoginForm() {
           تسجيل الدخول
         </h1>
         <p className="mt-2 text-sm text-slate-500">
-          {step === "phone"
-            ? "أدخل رقم هاتفك لإرسال رمز التحقق"
-            : "أدخل رمز التحقق المرسل إلى هاتفك"}
+          أدخل بريدك الإلكتروني وكلمة المرور
         </p>
 
         {error ? (
@@ -95,61 +70,48 @@ function LoginForm() {
           </div>
         ) : null}
 
-        {step === "phone" ? (
-          <form onSubmit={sendOTP} className="mt-6 space-y-3">
+        <form onSubmit={handleLogin} className="mt-6 space-y-3">
+          <div>
+            <label htmlFor="email" className="mb-1 block text-sm text-slate-600">
+              البريد الإلكتروني
+            </label>
             <input
-              name="phone"
-              type="tel"
+              id="email"
+              name="email"
+              type="email"
               required
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="رقم الهاتف (مثال: +966501234567)"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@example.com"
               className="w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm"
+              dir="ltr"
             />
-            <button
-              type="submit"
-              disabled={isPending}
-              className="w-full rounded-full bg-[var(--brand)] px-4 py-2 text-sm text-white disabled:opacity-50"
-            >
-              {isPending ? "جاري الإرسال..." : "إرسال رمز التحقق"}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={verifyOTP} className="mt-6 space-y-3">
+          </div>
+          <div>
+            <label htmlFor="password" className="mb-1 block text-sm text-slate-600">
+              كلمة المرور
+            </label>
             <input
-              name="otp"
-              type="text"
+              id="password"
+              name="password"
+              type="password"
               required
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              placeholder="رمز التحقق (6 أرقام)"
-              maxLength={6}
-              className="w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm text-center text-2xl tracking-widest"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="********"
+              className="w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm"
+              dir="ltr"
             />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setStep("phone");
-                  setOtp("");
-                  setError("");
-                }}
-                className="flex-1 rounded-full border border-[var(--border)] px-4 py-2 text-sm"
-              >
-                رجوع
-              </button>
-              <button
-                type="submit"
-                disabled={isPending || otp.length !== 6}
-                className="flex-1 rounded-full bg-[var(--brand)] px-4 py-2 text-sm text-white disabled:opacity-50"
-              >
-                {isPending ? "جاري التحقق..." : "تحقق"}
-              </button>
-            </div>
-          </form>
-        )}
+          </div>
+          <button
+            type="submit"
+            disabled={isPending}
+            className="w-full rounded-full bg-[var(--brand)] px-4 py-2 text-sm text-white disabled:opacity-50"
+          >
+            {isPending ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
+          </button>
+        </form>
       </div>
     </div>
   );
 }
-
