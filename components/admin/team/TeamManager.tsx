@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/admin/Badge";
 import { ConfirmationModal } from "@/components/admin/ConfirmationModal";
-import type { AdminRole } from "@/lib/auth/permissions";
+import { ROLE_NAV_ACCESS, type AdminRole } from "@/lib/auth/permissions";
 
 type TeamMember = {
   user_id: string;
@@ -64,12 +64,63 @@ export function TeamManager({ initialMembers, currentUserId, currentUserRole }: 
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
 
+  // Create member
+  const [showCreate, setShowCreate] = useState(false);
+  const [createEmail, setCreateEmail] = useState("");
+  const [createPassword, setCreatePassword] = useState("");
+  const [createName, setCreateName] = useState("");
+  const [createRole, setCreateRole] = useState<AdminRole>("viewer");
+  const [creating, setCreating] = useState(false);
+  const [createdCreds, setCreatedCreds] = useState<{ email: string; password: string } | null>(null);
+
   // Edit role modal
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [editRole, setEditRole] = useState<AdminRole>("viewer");
 
   // Remove modal
   const [removingMember, setRemovingMember] = useState<TeamMember | null>(null);
+
+  function generatePassword() {
+    const chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%";
+    let pw = "";
+    for (let i = 0; i < 14; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+    setCreatePassword(pw);
+  }
+
+  async function createMember() {
+    setCreating(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/team/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: createEmail,
+          password: createPassword,
+          displayName: createName,
+          role: createRole,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "فشل إنشاء العضو");
+        return;
+      }
+      setCreatedCreds({ email: createEmail, password: createPassword });
+      setCreateEmail("");
+      setCreatePassword("");
+      setCreateName("");
+      setCreateRole("viewer");
+      router.refresh();
+      const membersRes = await fetch("/api/admin/team");
+      const membersData = await membersRes.json();
+      setMembers(membersData.members ?? []);
+    } catch {
+      setError("حدث خطأ");
+    } finally {
+      setCreating(false);
+    }
+  }
 
   const searchUsers = useCallback(async (q: string) => {
     if (q.trim().length < 2) {
@@ -184,9 +235,140 @@ export function TeamManager({ initialMembers, currentUserId, currentUserRole }: 
         </div>
       )}
 
-      {/* Add Member Section */}
+      {/* Create New Member Section */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-light)] p-5 shadow-sm">
-        <h3 className="text-base font-semibold text-slate-900 mb-4">إضافة عضو جديد</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-slate-900">إنشاء عضو جديد</h3>
+          <button
+            onClick={() => { setShowCreate(!showCreate); setCreatedCreds(null); }}
+            className="rounded-full border border-[var(--border)] px-3 py-1.5 text-xs text-slate-700 hover:border-[var(--brand)] hover:text-[var(--brand)]"
+          >
+            {showCreate ? "إغلاق" : "إنشاء حساب"}
+          </button>
+        </div>
+
+        {showCreate && (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">الاسم</label>
+                <input
+                  type="text"
+                  value={createName}
+                  onChange={(e) => setCreateName(e.target.value)}
+                  placeholder="اسم العضو"
+                  className="w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">البريد الإلكتروني</label>
+                <input
+                  type="email"
+                  value={createEmail}
+                  onChange={(e) => setCreateEmail(e.target.value)}
+                  placeholder="member@example.com"
+                  className="w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">كلمة المرور</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={createPassword}
+                    onChange={(e) => setCreatePassword(e.target.value)}
+                    placeholder="كلمة المرور"
+                    className="flex-1 rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-mono"
+                    dir="ltr"
+                  />
+                  <button
+                    type="button"
+                    onClick={generatePassword}
+                    className="whitespace-nowrap rounded-xl border border-[var(--border)] px-3 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                  >
+                    توليد تلقائي
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-600 mb-1">الدور</label>
+                <select
+                  value={createRole}
+                  onChange={(e) => setCreateRole(e.target.value as AdminRole)}
+                  className="w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm"
+                >
+                  {ROLE_OPTIONS.filter(
+                    (r) => currentUserRole === "super_admin" || r.value !== "super_admin"
+                  ).map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Show allowed pages for the selected role */}
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+              <p className="text-xs font-medium text-slate-500 mb-2">
+                الصفحات المتاحة لهذا الدور:
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {(ROLE_NAV_ACCESS[createRole] ?? []).map((path) => (
+                  <span
+                    key={path}
+                    className="rounded-full bg-white border border-slate-200 px-2.5 py-0.5 text-xs text-slate-600"
+                  >
+                    {path.replace("/", "")}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={createMember}
+              disabled={creating || !createEmail || !createPassword || !createName}
+              className="rounded-full bg-[var(--brand)] px-5 py-2 text-sm text-white disabled:opacity-50"
+            >
+              {creating ? "جارٍ الإنشاء..." : "إنشاء العضو"}
+            </button>
+          </div>
+        )}
+
+        {/* Show created credentials */}
+        {createdCreds && (
+          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-sm font-semibold text-emerald-800 mb-2">
+              تم إنشاء العضو بنجاح! احفظ بيانات الدخول:
+            </p>
+            <div className="space-y-1 text-sm font-mono" dir="ltr">
+              <p className="text-emerald-700">
+                Email: <span className="font-bold">{createdCreds.email}</span>
+              </p>
+              <p className="text-emerald-700">
+                Password: <span className="font-bold">{createdCreds.password}</span>
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  `Email: ${createdCreds.email}\nPassword: ${createdCreds.password}`
+                );
+              }}
+              className="mt-2 rounded-full border border-emerald-300 px-3 py-1 text-xs text-emerald-700 hover:bg-emerald-100"
+            >
+              نسخ البيانات
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Add Existing Member Section */}
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-light)] p-5 shadow-sm">
+        <h3 className="text-base font-semibold text-slate-900 mb-4">ترقية مستخدم موجود</h3>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
             <label className="block text-sm text-slate-600 mb-1">بحث عن مستخدم</label>
