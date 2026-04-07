@@ -2,6 +2,14 @@ import type { NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
+  // Debug: log auth cookies on API POST requests
+  if (request.method === "POST" && request.nextUrl.pathname.startsWith("/api/admin")) {
+    const allCookies = request.cookies.getAll();
+    const authCookies = allCookies.filter((c) => c.name.startsWith("sb-"));
+    console.log(
+      `[middleware] ${request.method} ${request.nextUrl.pathname} | cookies: ${allCookies.length} total, ${authCookies.length} auth (${authCookies.map((c) => c.name).join(", ") || "NONE"})`
+    );
+  }
   return await updateSession(request);
 }
 
