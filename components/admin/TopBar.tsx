@@ -18,12 +18,12 @@ export function TopBar() {
         <button className="rounded-full bg-[var(--brand)] px-4 py-2 text-white">
           إنشاء وكيل
         </button>
-        <Link
+        <a
           href="/api/logout"
           className="rounded-full border border-[var(--border)] px-4 py-2 text-slate-700"
         >
           تسجيل خروج
-        </Link>
+        </a>
       </div>
     </header>
   );
