@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { loginAction } from "./actions";
 
 const ERROR_MESSAGES: Record<string, string> = {
   unauthorized: "ليس لديك صلاحية للوصول إلى لوحة التحكم",
@@ -36,14 +37,9 @@ function LoginForm() {
     setError("");
     startTransition(async () => {
       try {
-        const res = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          setError(data.error || "فشل تسجيل الدخول");
+        const result = await loginAction(email, password);
+        if (result.error) {
+          setError(result.error);
           return;
         }
         router.push("/overview");
