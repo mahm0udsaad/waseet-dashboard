@@ -171,6 +171,7 @@ export const getPublicAd = cache(async (type: PublicAdType, id: string) => {
     .select("id, type, title, description, price, location, metadata, created_at, ad_images(storage_path, sort_order)")
     .eq("id", id)
     .eq("type", type)
+    .eq("status", "active")
     .maybeSingle();
 
   if (!data) return null;

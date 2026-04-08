@@ -43,12 +43,12 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: "/KAFEL.png",
-    shortcut: "/KAFEL.png",
-    apple: "/KAFEL.png",
+    icon: "/icon-main.png",
+    shortcut: "/icon-main.png",
+    apple: "/icon-main.png",
     other: {
       rel: "apple-touch-icon-precomposed",
-      url: "/KAFEL.png",
+      url: "/icon-main.png",
     },
   },
   openGraph: {
@@ -60,7 +60,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/KAFEL.png",
+        url: "/icon-main.png",
         width: 800,
         height: 800,
         alt: `${APP_NAME} Logo`,
@@ -72,7 +72,7 @@ export const metadata: Metadata = {
     title: APP_NAME,
     description: APP_DESCRIPTION,
     creator: "@waseetalaan",
-    images: ["/KAFEL.png"],
+    images: ["/icon-main.png"],
   },
   robots: {
     index: true,

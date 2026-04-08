@@ -26,7 +26,7 @@ export function TopBar({ roleLabel, pendingCount, sectionCount }: TopBarProps) {
           <Link href="/overview" className="flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-950/5 ring-1 ring-slate-200">
               <Image
-                src="/KAFEL.png"
+                src="/icon-main.png"
                 alt="وسيط الآن"
                 width={52}
                 height={52}
