@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 type Recipient = {
   id: string;
@@ -46,7 +47,7 @@ export function NotificationModal({
     }
   }, [open, recipients]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
   function toggleRecipient(id: string) {
     setSelectedIds((prev) =>
@@ -87,7 +88,7 @@ export function NotificationModal({
     }
   }
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
       onClick={onClose}
@@ -185,6 +186,7 @@ export function NotificationModal({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

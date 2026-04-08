@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { ActionDropdown } from "@/components/admin/ActionDropdown";
 import { ConfirmationModal } from "@/components/admin/ConfirmationModal";
 import { NotificationModal } from "@/components/admin/NotificationModal";
@@ -41,7 +42,7 @@ function RejectTransferModal({
     return () => document.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
   async function handleReject() {
     setLoading(true);
@@ -62,7 +63,7 @@ function RejectTransferModal({
     }
   }
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
       onClick={onClose}
@@ -101,7 +102,8 @@ function RejectTransferModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

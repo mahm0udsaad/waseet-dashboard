@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 type UserProfile = {
   user_id: string;
@@ -11,6 +12,15 @@ type UserProfile = {
   role: string;
   status: string;
   created_at: string;
+  latest_withdrawal: {
+    iban: string | null;
+    bank_name: string | null;
+    account_holder_name: string | null;
+    admin_note: string | null;
+    created_at: string;
+    processed_at: string | null;
+    status: string;
+  } | null;
 };
 
 type UserInfoModalProps = {
@@ -40,14 +50,35 @@ export function UserInfoModal({ open, onClose, userIds }: UserInfoModalProps) {
 
   useEffect(() => {
     if (!open || userIds.length === 0) return;
-    setLoading(true);
-    fetch(`/api/admin/users/info?ids=${userIds.join(",")}`, {
-      headers: { accept: "application/json" },
-    })
-      .then((r) => r.json())
-      .then((data) => setUsers(data.users ?? []))
-      .catch(() => setUsers([]))
-      .finally(() => setLoading(false));
+
+    let cancelled = false;
+
+    async function loadUsers() {
+      setLoading(true);
+      try {
+        const response = await fetch(`/api/admin/users/info?ids=${userIds.join(",")}`, {
+          headers: { accept: "application/json" },
+        });
+        const data = (await response.json()) as { users?: UserProfile[] };
+        if (!cancelled) {
+          setUsers(data.users ?? []);
+        }
+      } catch {
+        if (!cancelled) {
+          setUsers([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadUsers();
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, userIds]);
 
   useEffect(() => {
@@ -59,9 +90,9 @@ export function UserInfoModal({ open, onClose, userIds }: UserInfoModalProps) {
     return () => document.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
       onClick={onClose}
@@ -82,6 +113,7 @@ export function UserInfoModal({ open, onClose, userIds }: UserInfoModalProps) {
           <div className="mt-4 space-y-3">
             {users.map((user) => {
               const st = statusMap[user.status] ?? statusMap.active;
+              const latestWithdrawal = user.latest_withdrawal;
               return (
                 <div
                   key={user.user_id}
@@ -108,6 +140,36 @@ export function UserInfoModal({ open, onClose, userIds }: UserInfoModalProps) {
                   <p className="mt-1 text-xs text-slate-500">
                     الدور: {roleMap[user.role] ?? user.role}
                   </p>
+                  {latestWithdrawal ? (
+                    <div className="mt-3 rounded-xl bg-slate-50 p-3">
+                      <p className="text-xs font-semibold text-slate-700">
+                        آخر بيانات بنكية
+                      </p>
+                      <p className="mt-2 text-xs text-slate-600">
+                        اسم البنك: {latestWithdrawal.bank_name ?? "—"}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-600">
+                        اسم صاحب الحساب:{" "}
+                        {latestWithdrawal.account_holder_name ?? "—"}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-600">
+                        آخر ملاحظة إدارية: {latestWithdrawal.admin_note ?? "—"}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-600">
+                        رقم الحساب / IBAN:
+                      </p>
+                      <p
+                        className="mt-1 break-all rounded-lg bg-white px-2 py-1 font-mono text-xs text-slate-900"
+                        dir="ltr"
+                      >
+                        {latestWithdrawal.iban ?? "—"}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-xs text-slate-400">
+                      لا توجد بيانات بنكية محفوظة لهذا المستخدم.
+                    </p>
+                  )}
                   <Link
                     href={`/users/${user.user_id}`}
                     className="mt-2 inline-block text-xs text-[var(--brand)] hover:underline"
@@ -136,6 +198,7 @@ export function UserInfoModal({ open, onClose, userIds }: UserInfoModalProps) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

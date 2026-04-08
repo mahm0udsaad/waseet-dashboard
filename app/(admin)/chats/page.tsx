@@ -232,6 +232,7 @@ export default async function ChatsPage({ searchParams }: Props) {
           page={page}
           pageSize={PAGE_SIZE}
           totalItems={count ?? 0}
+          query={{ type, status }}
         />
       </SectionCard>
     </>

@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { DisputeChat } from "@/components/admin/damin-orders/DisputeChat";
 import { ReceiptImage } from "@/components/admin/damin-orders/ReceiptImage";
+import { fillMissingUserContacts } from "@/lib/admin/user-contact";
 import { formatDate, formatNumber } from "@/lib/format";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -47,12 +48,13 @@ export default async function DaminOrderDetailPage({ params }: Props) {
   const { data: profiles } = userIds.length > 0
     ? await supabase
         .from("profiles")
-        .select("user_id, display_name, email")
+        .select("user_id, display_name, email, phone")
         .in("user_id", userIds)
     : { data: [] };
+  const hydratedProfiles = await fillMissingUserContacts(profiles ?? []);
 
   const profileMap = new Map(
-    (profiles ?? []).map((p) => [p.user_id, p])
+    hydratedProfiles.map((p) => [p.user_id, p])
   );
 
   const payerProfile = profileMap.get(order.payer_user_id);
@@ -138,8 +140,16 @@ export default async function DaminOrderDetailPage({ params }: Props) {
             </div>
             <div className="flex justify-between">
               <dt className="text-slate-500">الهاتف</dt>
-              <dd className="font-mono text-slate-900" dir="ltr">{order.payer_phone ?? "—"}</dd>
+              <dd className="font-mono text-slate-900" dir="ltr">
+                {payerProfile?.phone ?? order.payer_phone ?? "—"}
+              </dd>
             </div>
+            {payerProfile?.email && (
+              <div className="flex justify-between">
+                <dt className="text-slate-500">البريد الإلكتروني</dt>
+                <dd className="text-slate-900">{payerProfile.email}</dd>
+              </div>
+            )}
             <div className="flex justify-between">
               <dt className="text-slate-500">تاريخ التأكيد</dt>
               <dd className="text-slate-900">
@@ -157,8 +167,16 @@ export default async function DaminOrderDetailPage({ params }: Props) {
             </div>
             <div className="flex justify-between">
               <dt className="text-slate-500">الهاتف</dt>
-              <dd className="font-mono text-slate-900" dir="ltr">{order.beneficiary_phone ?? "—"}</dd>
+              <dd className="font-mono text-slate-900" dir="ltr">
+                {beneficiaryProfile?.phone ?? order.beneficiary_phone ?? "—"}
+              </dd>
             </div>
+            {beneficiaryProfile?.email && (
+              <div className="flex justify-between">
+                <dt className="text-slate-500">البريد الإلكتروني</dt>
+                <dd className="text-slate-900">{beneficiaryProfile.email}</dd>
+              </div>
+            )}
             <div className="flex justify-between">
               <dt className="text-slate-500">تاريخ التأكيد</dt>
               <dd className="text-slate-900">

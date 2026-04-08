@@ -4,6 +4,8 @@ import { DataTable } from "@/components/admin/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { UserRowActions } from "@/components/admin/users/UserRowActions";
+import { fillMissingUserContacts } from "@/lib/admin/user-contact";
+import { requireRole } from "@/lib/auth/requireRole";
 import { formatDate, formatNumber } from "@/lib/format";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
@@ -22,8 +24,15 @@ type Props = {
 };
 
 export default async function UserDetailPage({ params }: Props) {
+  const { role: currentAdminRole } = await requireRole([
+    "super_admin",
+    "admin",
+    "support_agent",
+  ]);
   const { id } = await params;
   const supabase = getSupabaseServerClient();
+  const canManageUsers =
+    currentAdminRole === "super_admin" || currentAdminRole === "admin";
 
   const { data: user } = await supabase
     .from("profiles")
@@ -32,6 +41,7 @@ export default async function UserDetailPage({ params }: Props) {
     .maybeSingle();
 
   if (!user) notFound();
+  const [hydratedUser] = await fillMissingUserContacts([user]);
 
   // Fetch all related data in parallel
   const [
@@ -41,6 +51,7 @@ export default async function UserDetailPage({ params }: Props) {
     { data: daminOrders },
     { data: receipts },
     { data: notifications },
+    { data: latestWithdrawal },
   ] = await Promise.all([
     supabase
       .from("ads")
@@ -78,6 +89,15 @@ export default async function UserDetailPage({ params }: Props) {
       .eq("recipient_id", id)
       .order("created_at", { ascending: false })
       .limit(20),
+    supabase
+      .from("withdrawal_requests")
+      .select(
+        "id, amount, iban, bank_name, account_holder_name, admin_note, status, created_at, processed_at"
+      )
+      .eq("user_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   const typeLabels: Record<string, string> = {
@@ -89,7 +109,7 @@ export default async function UserDetailPage({ params }: Props) {
   return (
     <>
       <PageHeader
-        title={user.display_name}
+        title={hydratedUser.display_name}
         subtitle="تفاصيل المستخدم والسجلات المرتبطة."
       />
 
@@ -99,29 +119,30 @@ export default async function UserDetailPage({ params }: Props) {
         actions={
           <div className="flex items-center gap-2">
             <UserRowActions
-              userId={user.user_id}
-              displayName={user.display_name}
-              status={user.status}
+              userId={hydratedUser.user_id}
+              displayName={hydratedUser.display_name}
+              status={hydratedUser.status}
+              canManageUsers={canManageUsers}
             />
           </div>
         }
       >
         <div className="flex items-center gap-4 mb-4 pb-4 border-b border-[var(--border)]">
-          {user.avatar_url ? (
+          {hydratedUser.avatar_url ? (
             <img
-              src={user.avatar_url}
+              src={hydratedUser.avatar_url}
               alt=""
               className="h-16 w-16 rounded-full object-cover border-2 border-[var(--border)]"
             />
           ) : (
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-400">
-              {user.display_name?.charAt(0) ?? "?"}
+              {hydratedUser.display_name?.charAt(0) ?? "?"}
             </div>
           )}
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">{user.display_name}</h3>
-            {user.phone && (
-              <p className="text-sm text-slate-500" dir="ltr">+{user.phone}</p>
+            <h3 className="text-lg font-semibold text-slate-900">{hydratedUser.display_name}</h3>
+            {hydratedUser.phone && (
+              <p className="text-sm text-slate-500" dir="ltr">+{hydratedUser.phone}</p>
             )}
           </div>
         </div>
@@ -129,47 +150,122 @@ export default async function UserDetailPage({ params }: Props) {
           <div>
             <dt className="text-xs text-slate-500">الاسم</dt>
             <dd className="text-sm font-medium text-slate-900">
-              {user.display_name}
+              {hydratedUser.display_name}
             </dd>
           </div>
           <div>
             <dt className="text-xs text-slate-500">البريد الإلكتروني</dt>
-            <dd className="text-sm text-slate-900">{user.email ?? "—"}</dd>
+            <dd className="text-sm text-slate-900">{hydratedUser.email ?? "—"}</dd>
           </div>
           <div>
             <dt className="text-xs text-slate-500">رقم الجوال</dt>
-            <dd className="text-sm text-slate-900">{user.phone ?? "—"}</dd>
+            <dd className="text-sm text-slate-900" dir="ltr">
+              {hydratedUser.phone ?? "—"}
+            </dd>
           </div>
           <div>
             <dt className="text-xs text-slate-500">الدور</dt>
             <dd className="text-sm text-slate-900">
-              {roleLabels[user.role] ?? user.role}
+              {roleLabels[hydratedUser.role] ?? hydratedUser.role}
             </dd>
           </div>
           <div>
             <dt className="text-xs text-slate-500">الحالة</dt>
             <dd>
               <Badge
-                label={user.status === "banned" ? "محظور" : user.status === "deleted" ? "محذوف" : "نشط"}
-                tone={user.status === "banned" ? "danger" : user.status === "deleted" ? "neutral" : "success"}
+                label={hydratedUser.status === "banned" ? "محظور" : hydratedUser.status === "deleted" ? "محذوف" : "نشط"}
+                tone={hydratedUser.status === "banned" ? "danger" : hydratedUser.status === "deleted" ? "neutral" : "success"}
               />
             </dd>
           </div>
           <div>
             <dt className="text-xs text-slate-500">تاريخ التسجيل</dt>
             <dd className="text-sm text-slate-900">
-              {formatDate(user.created_at)}
+              {formatDate(hydratedUser.created_at)}
             </dd>
           </div>
-          {user.banned_until && (
+          {hydratedUser.banned_until && (
             <div>
               <dt className="text-xs text-slate-500">محظور حتى</dt>
               <dd className="text-sm text-rose-600">
-                {formatDate(user.banned_until)}
+                {formatDate(hydratedUser.banned_until)}
               </dd>
             </div>
           )}
         </dl>
+      </SectionCard>
+
+      <SectionCard
+        title="البيانات البنكية"
+        description="آخر بيانات بنكية استخدمها العميل في طلبات السحب."
+      >
+        {latestWithdrawal ? (
+          <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <dt className="text-xs text-slate-500">اسم البنك</dt>
+              <dd className="text-sm font-medium text-slate-900">
+                {latestWithdrawal.bank_name ?? "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-slate-500">اسم صاحب الحساب</dt>
+              <dd className="text-sm font-medium text-slate-900">
+                {latestWithdrawal.account_holder_name ?? "—"}
+              </dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-xs text-slate-500">آخر ملاحظة إدارية</dt>
+              <dd className="text-sm font-medium text-slate-900">
+                {latestWithdrawal.admin_note ?? "—"}
+              </dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-xs text-slate-500">رقم الحساب / IBAN</dt>
+              <dd
+                className="mt-1 break-all rounded-xl bg-slate-50 px-3 py-2 font-mono text-sm text-slate-900"
+                dir="ltr"
+              >
+                {latestWithdrawal.iban ?? "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-slate-500">حالة آخر طلب سحب</dt>
+              <dd className="mt-1">
+                <Badge
+                  label={
+                    latestWithdrawal.status === "approved"
+                      ? "تمت الموافقة"
+                      : latestWithdrawal.status === "rejected"
+                        ? "مرفوض"
+                        : latestWithdrawal.status === "completed"
+                          ? "مكتمل"
+                          : "قيد الانتظار"
+                  }
+                  tone={
+                    latestWithdrawal.status === "approved" ||
+                    latestWithdrawal.status === "completed"
+                      ? "success"
+                      : latestWithdrawal.status === "rejected"
+                        ? "danger"
+                        : "warning"
+                  }
+                />
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-slate-500">تاريخ آخر تحديث</dt>
+              <dd className="text-sm text-slate-900">
+                {formatDate(
+                  latestWithdrawal.processed_at ?? latestWithdrawal.created_at
+                )}
+              </dd>
+            </div>
+          </dl>
+        ) : (
+          <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center text-sm text-slate-500">
+            لا توجد بيانات بنكية محفوظة لهذا المستخدم حتى الآن.
+          </div>
+        )}
       </SectionCard>
 
       {/* User's Ads */}

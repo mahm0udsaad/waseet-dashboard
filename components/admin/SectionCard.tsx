@@ -14,17 +14,20 @@ export function SectionCard({
   children,
 }: SectionCardProps) {
   return (
-    <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface-light)] p-4 shadow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+    <section className="admin-panel rounded-[28px] p-5 sm:p-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="space-y-1">
+          <h2 className="text-xl font-semibold text-slate-950">{title}</h2>
           {description ? (
-            <p className="text-sm text-slate-500">{description}</p>
+            <p className="text-sm leading-6 text-[var(--text-muted)]">
+              {description}
+            </p>
           ) : null}
         </div>
-        {actions}
+        {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
-      <div className="mt-4">{children}</div>
+      <div className="mt-5 h-px bg-gradient-to-l from-transparent via-slate-200 to-transparent" />
+      <div className="mt-5">{children}</div>
     </section>
   );
 }

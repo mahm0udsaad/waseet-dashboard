@@ -3,7 +3,11 @@ import { SidebarNav } from "@/components/admin/SidebarNav";
 import { TopBar } from "@/components/admin/TopBar";
 import { ADMIN_NAV_ITEMS, TRACKED_BADGE_PATHS } from "@/lib/admin/sidebar";
 import { requireRole } from "@/lib/auth/requireRole";
-import { getNavItemsForRole, type AdminRole } from "@/lib/auth/permissions";
+import {
+  getNavItemsForRole,
+  ROLE_LABELS,
+  type AdminRole,
+} from "@/lib/auth/permissions";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
@@ -120,22 +124,32 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   const badgeMap: Record<string, number> = Object.fromEntries(badgeEntries);
   const overviewCount = Object.values(badgeMap).reduce((sum, value) => sum + value, 0);
+  const roleLabel = ROLE_LABELS[role as AdminRole];
 
   return (
-    <div className="min-h-screen bg-[var(--background)] px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <TopBar />
-        <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-          <SidebarNav
-            items={allowedItems.map((item) => ({
-              ...item,
-              badgeCount:
-                item.href === "/overview"
-                  ? overviewCount
-                  : (badgeMap[item.href] ?? 0),
-            }))}
-          />
-          <main className="flex flex-col gap-6">{children}</main>
+    <div className="admin-shell relative min-h-screen px-3 py-4 sm:px-5 lg:px-6">
+      <div className="admin-grid-overlay absolute inset-0" />
+      <div className="relative mx-auto flex max-w-[1520px] flex-col gap-5">
+        <TopBar
+          roleLabel={roleLabel}
+          pendingCount={overviewCount}
+          sectionCount={allowedItems.length}
+        />
+        <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="xl:sticky xl:top-5 xl:self-start">
+            <SidebarNav
+              roleLabel={roleLabel}
+              pendingCount={overviewCount}
+              items={allowedItems.map((item) => ({
+                ...item,
+                badgeCount:
+                  item.href === "/overview"
+                    ? overviewCount
+                    : (badgeMap[item.href] ?? 0),
+              }))}
+            />
+          </div>
+          <main className="flex min-w-0 flex-col gap-5">{children}</main>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { ActionDropdown } from "@/components/admin/ActionDropdown";
 import { ConfirmationModal } from "@/components/admin/ConfirmationModal";
 
@@ -100,7 +101,8 @@ export function CompletionRequestRowActions({
       />
 
       {/* Custom reject modal with comment */}
-      {showReject && (
+      {showReject && typeof document !== "undefined"
+        ? createPortal(
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
           onClick={() => setShowReject(false)}
@@ -139,8 +141,10 @@ export function CompletionRequestRowActions({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+        document.body
+      )
+        : null}
     </>
   );
 }

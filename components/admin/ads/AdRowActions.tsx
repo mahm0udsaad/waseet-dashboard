@@ -49,6 +49,7 @@ export function AdRowActions({
   }
 
   const dropdownItems = [
+    { label: "عرض التفاصيل", href: `/ads/${adId}` },
     ...(conversationId
       ? [{ label: "عرض المحادثة", href: `/chats?conversation=${conversationId}` }]
       : []),

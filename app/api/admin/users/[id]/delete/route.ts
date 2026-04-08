@@ -12,10 +12,17 @@ export async function POST(
   if ("error" in auth) return auth.error;
   const supabase = getSupabaseServerClient();
 
-  await supabase
+  const { error } = await supabase
     .from("profiles")
     .update({ status: "deleted", banned_until: null })
     .eq("user_id", id);
+
+  if (error) {
+    return NextResponse.json(
+      { error: "تعذر حذف المستخدم حالياً" },
+      { status: 500 }
+    );
+  }
 
   await logAdminAction({
     actorId: auth.userId,

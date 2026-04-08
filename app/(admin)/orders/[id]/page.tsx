@@ -5,6 +5,7 @@ import { ActionButton } from "@/components/admin/ActionButton";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { ReceiptImage } from "@/components/admin/damin-orders/ReceiptImage";
+import { fillMissingUserContacts } from "@/lib/admin/user-contact";
 import { formatDate, formatNumber } from "@/lib/format";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -41,12 +42,13 @@ export default async function OrderDetailPage({ params }: Props) {
     userIds.length > 0
       ? await supabase
           .from("profiles")
-          .select("user_id, display_name, email")
+          .select("user_id, display_name, email, phone")
           .in("user_id", userIds)
       : { data: [] };
+  const hydratedProfiles = await fillMissingUserContacts(profiles ?? []);
 
   const profileMap = new Map(
-    (profiles ?? []).map((p) => [p.user_id, p])
+    hydratedProfiles.map((p) => [p.user_id, p])
   );
 
   const buyerProfile = profileMap.get(order.buyer_id);
@@ -108,6 +110,12 @@ export default async function OrderDetailPage({ params }: Props) {
                 <dd className="text-slate-900">{buyerProfile.email}</dd>
               </div>
             )}
+            <div className="flex justify-between">
+              <dt className="text-slate-500">رقم الجوال</dt>
+              <dd className="text-slate-900" dir="ltr">
+                {buyerProfile?.phone ?? "—"}
+              </dd>
+            </div>
           </dl>
         </SectionCard>
 
@@ -123,6 +131,12 @@ export default async function OrderDetailPage({ params }: Props) {
                 <dd className="text-slate-900">{sellerProfile.email}</dd>
               </div>
             )}
+            <div className="flex justify-between">
+              <dt className="text-slate-500">رقم الجوال</dt>
+              <dd className="text-slate-900" dir="ltr">
+                {sellerProfile?.phone ?? "—"}
+              </dd>
+            </div>
           </dl>
         </SectionCard>
       </div>

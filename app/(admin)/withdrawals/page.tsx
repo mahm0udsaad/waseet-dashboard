@@ -195,10 +195,9 @@ export default async function WithdrawalsPage({ searchParams }: Props) {
               render: (row) => {
                 const iban = row.iban as string;
                 if (!iban) return <span className="text-slate-300">—</span>;
-                const masked = iban.slice(0, 4) + "••••••••" + iban.slice(-4);
                 return (
-                  <span className="font-mono text-xs" dir="ltr" title={iban}>
-                    {masked}
+                  <span className="break-all font-mono text-xs" dir="ltr" title={iban}>
+                    {iban}
                   </span>
                 );
               },

@@ -11,30 +11,41 @@ type UserRowActionsProps = {
   userId: string;
   displayName: string;
   status: string;
+  canManageUsers?: boolean;
 };
 
 export function UserRowActions({
   userId,
   displayName,
   status,
+  canManageUsers = false,
 }: UserRowActionsProps) {
   const router = useRouter();
   const [showDelete, setShowDelete] = useState(false);
   const [showNotify, setShowNotify] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   async function handleDelete() {
+    setDeleteError("");
     setDeleteLoading(true);
     try {
       const res = await fetch(`/api/admin/users/${userId}/delete`, {
         method: "POST",
         headers: { accept: "application/json" },
       });
-      if (!res.ok) throw new Error("Failed");
+      if (!res.ok) {
+        const payload = (await res.json().catch(() => null)) as
+          | { error?: string }
+          | null;
+        throw new Error(payload?.error || "تعذر حذف المستخدم");
+      }
       setShowDelete(false);
       router.refresh();
-    } catch {
-      // keep modal open
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : "تعذر حذف المستخدم"
+      );
     } finally {
       setDeleteLoading(false);
     }
@@ -49,6 +60,7 @@ export function UserRowActions({
         offEndpoint={`/api/admin/users/${userId}/unban`}
         labelOn="محظور"
         labelOff="نشط"
+        disabled={!canManageUsers}
       />
 
       <ActionDropdown
@@ -61,20 +73,28 @@ export function UserRowActions({
             label: "إرسال إشعار",
             onClick: () => setShowNotify(true),
           },
-          {
-            label: "حذف المستخدم",
-            variant: "danger",
-            onClick: () => setShowDelete(true),
-          },
+          ...(canManageUsers
+            ? [
+                {
+                  label: "حذف المستخدم",
+                  variant: "danger" as const,
+                  onClick: () => setShowDelete(true),
+                },
+              ]
+            : []),
         ]}
       />
 
       <ConfirmationModal
         open={showDelete}
-        onClose={() => setShowDelete(false)}
+        onClose={() => {
+          setShowDelete(false);
+          setDeleteError("");
+        }}
         onConfirm={handleDelete}
         title="حذف المستخدم"
         message={`هل أنت متأكد من حذف المستخدم "${displayName}"؟ لا يمكن التراجع عن هذا الإجراء.`}
+        errorMessage={deleteError}
         confirmLabel="حذف"
         variant="danger"
         loading={deleteLoading}

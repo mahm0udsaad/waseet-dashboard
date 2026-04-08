@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { formatDate, formatTime } from "@/lib/format";
 
 type Message = {
@@ -38,16 +39,46 @@ export function MessagesModal({
   conversationId,
 }: MessagesModalProps) {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    fetch(`/api/admin/conversations/${conversationId}/messages`, {
-      headers: { accept: "application/json" },
-    })
-      .then((r) => r.json())
-      .then((data) => setMessages(data.messages ?? []))
-      .catch(() => setMessages([]));
+
+    let cancelled = false;
+
+    async function loadMessages() {
+      setLoading(true);
+      setMessages([]);
+
+      try {
+        const response = await fetch(
+          `/api/admin/conversations/${conversationId}/messages`,
+          {
+            headers: { accept: "application/json" },
+          }
+        );
+        const data = (await response.json()) as { messages?: Message[] };
+
+        if (!cancelled) {
+          setMessages(data.messages ?? []);
+        }
+      } catch {
+        if (!cancelled) {
+          setMessages([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadMessages();
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, conversationId]);
 
   // Scroll to bottom when messages load
@@ -66,7 +97,7 @@ export function MessagesModal({
     return () => document.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
   // Assign colours to senders
   const senderIds = [...new Set(messages.map((m) => m.sender_id))];
@@ -77,7 +108,7 @@ export function MessagesModal({
     senderIds.map((id, i) => [id, i % 2 === 0 ? "right" : "left"])
   );
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
       onClick={onClose}
@@ -94,7 +125,7 @@ export function MessagesModal({
               المحادثة
             </h3>
             <p className="mt-0.5 text-[11px] text-slate-400">
-              {`${messages.length} رسالة`}
+              {loading ? "جارٍ تحميل الرسائل..." : `${messages.length} رسالة`}
             </p>
           </div>
           <button
@@ -118,7 +149,24 @@ export function MessagesModal({
           className="flex-1 overflow-y-auto px-4 py-3"
           style={{ background: "#f8f9fb" }}
         >
-          {messages.length === 0 ? (
+          {loading ? (
+            <div className="space-y-3 py-2">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div
+                  key={`message-skeleton-${index}`}
+                  className={`flex ${
+                    index % 2 === 0 ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div className="max-w-[75%] rounded-2xl bg-white px-4 py-3 shadow-sm">
+                    <div className="h-2 w-16 rounded-full bg-slate-200" />
+                    <div className="mt-3 h-2 w-40 rounded-full bg-slate-200" />
+                    <div className="mt-2 h-2 w-28 rounded-full bg-slate-200" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : messages.length === 0 ? (
             <div className="flex h-full items-center justify-center text-sm text-slate-400">
               لا توجد رسائل
             </div>
@@ -187,6 +235,7 @@ export function MessagesModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

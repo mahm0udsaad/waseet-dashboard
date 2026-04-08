@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 
 type ConfirmationModalProps = {
   open: boolean;
@@ -8,6 +9,7 @@ type ConfirmationModalProps = {
   onConfirm: () => void | Promise<void>;
   title: string;
   message: string;
+  errorMessage?: string;
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: "danger" | "warning";
@@ -20,6 +22,7 @@ export function ConfirmationModal({
   onConfirm,
   title,
   message,
+  errorMessage,
   confirmLabel = "تأكيد",
   cancelLabel = "إلغاء",
   variant = "danger",
@@ -34,14 +37,14 @@ export function ConfirmationModal({
     return () => document.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
   const confirmClass =
     variant === "danger"
       ? "bg-rose-500 hover:bg-rose-600 text-white"
       : "bg-amber-500 hover:bg-amber-600 text-white";
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
       onClick={onClose}
@@ -52,6 +55,11 @@ export function ConfirmationModal({
       >
         <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
         <p className="mt-2 text-sm text-slate-600">{message}</p>
+        {errorMessage ? (
+          <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            {errorMessage}
+          </div>
+        ) : null}
         <div className="mt-6 flex gap-3 justify-end">
           <button
             type="button"
@@ -71,6 +79,7 @@ export function ConfirmationModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

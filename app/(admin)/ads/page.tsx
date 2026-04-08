@@ -202,7 +202,18 @@ export default async function AdsPage({ searchParams }: Props) {
       >
         <DataTable
           columns={[
-            { key: "title", label: "العنوان" },
+            {
+              key: "title",
+              label: "العنوان",
+              render: (row) => (
+                <Link
+                  href={`/ads/${row.id as string}`}
+                  className="text-[var(--brand)] underline underline-offset-2"
+                >
+                  {row.title as string}
+                </Link>
+              ),
+            },
             { key: "ownerName", label: "المالك" },
             {
               key: "type",
@@ -252,6 +263,7 @@ export default async function AdsPage({ searchParams }: Props) {
           page={page}
           pageSize={PAGE_SIZE}
           totalItems={count ?? 0}
+          query={{ q, type, status, ad_id }}
         />
       </SectionCard>
     </>

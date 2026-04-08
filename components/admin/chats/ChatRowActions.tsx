@@ -32,7 +32,7 @@ export function ChatRowActions({
       onClick: () => setShowMembers(true),
     },
     ...(adId
-      ? [{ label: "عرض الإعلان المرتبط", href: `/ads?ad_id=${adId}` }]
+      ? [{ label: "عرض الإعلان المرتبط", href: `/ads/${adId}` }]
       : []),
   ];
 

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { ActionDropdown } from "@/components/admin/ActionDropdown";
 import { ConfirmationModal } from "@/components/admin/ConfirmationModal";
 import { UserInfoModal } from "@/components/admin/UserInfoModal";
@@ -100,8 +101,9 @@ export function WithdrawalRowActions({
       />
 
       {/* Reject modal with note */}
-      {showReject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      {showReject &&
+        createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <h3 className="text-lg font-semibold text-slate-900">رفض طلب السحب</h3>
             <p className="mt-1 text-sm text-slate-600">
@@ -134,7 +136,8 @@ export function WithdrawalRowActions({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <UserInfoModal

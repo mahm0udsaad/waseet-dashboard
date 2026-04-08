@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Badge } from "@/components/admin/Badge";
 import { DataTable } from "@/components/admin/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
@@ -194,6 +193,7 @@ export default async function ReceiptsPage({ searchParams }: Props) {
           page={page}
           pageSize={PAGE_SIZE}
           totalItems={count ?? 0}
+          query={{ status }}
         />
       </SectionCard>
     </>

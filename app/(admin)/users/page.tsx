@@ -6,6 +6,8 @@ import { PaginationControls } from "@/components/admin/PaginationControls";
 import { SearchFilter } from "@/components/admin/SearchFilter";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { UserRowActions } from "@/components/admin/users/UserRowActions";
+import { fillMissingUserContacts } from "@/lib/admin/user-contact";
+import { requireRole } from "@/lib/auth/requireRole";
 import { formatDate } from "@/lib/format";
 import { getPaginationRange, parsePageParam } from "@/lib/pagination";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -31,10 +33,17 @@ type Props = {
 };
 
 export default async function UsersPage({ searchParams }: Props) {
+  const { role: currentAdminRole } = await requireRole([
+    "super_admin",
+    "admin",
+    "support_agent",
+  ]);
   const { page: pageParam, q, status, role } = await searchParams;
   const page = parsePageParam(pageParam);
   const { from, to } = getPaginationRange(page, PAGE_SIZE);
   const supabase = getSupabaseServerClient();
+  const canManageUsers =
+    currentAdminRole === "super_admin" || currentAdminRole === "admin";
 
   let query = supabase
     .from("profiles")
@@ -62,9 +71,10 @@ export default async function UsersPage({ searchParams }: Props) {
     query.order("created_at", { ascending: false }).range(from, to),
     countQuery,
   ]);
+  const hydratedUsers = await fillMissingUserContacts(users ?? []);
 
   const rows =
-    users?.map((user) => ({
+    hydratedUsers.map((user) => ({
       ...user,
       statusBadge: (
         <Badge
@@ -167,6 +177,7 @@ export default async function UsersPage({ searchParams }: Props) {
                   userId={row.user_id as string}
                   displayName={row.display_name as string}
                   status={row.status as string}
+                  canManageUsers={canManageUsers}
                 />
               ),
             },
@@ -179,6 +190,7 @@ export default async function UsersPage({ searchParams }: Props) {
           page={page}
           pageSize={PAGE_SIZE}
           totalItems={count ?? 0}
+          query={{ q, status, role }}
         />
       </SectionCard>
     </>

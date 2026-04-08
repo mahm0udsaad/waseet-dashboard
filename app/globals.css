@@ -17,6 +17,25 @@
   --gradient-1: #ffecec;
   --gradient-2: #e0f2fe;
   --gradient-3: #f3e8ff;
+
+  /* Admin dashboard tokens */
+  --admin-bg-start: #fff8f5;
+  --admin-bg-middle: #ffffff;
+  --admin-bg-end: #f8fafc;
+  --panel: rgba(255, 255, 255, 0.9);
+  --panel-strong: rgba(255, 255, 255, 0.98);
+  --panel-muted: rgba(248, 250, 252, 0.92);
+  --text-muted: #475569;
+  --text-subtle: #64748b;
+  --success: #047857;
+  --success-soft: #ecfdf5;
+  --warning: #b45309;
+  --warning-soft: #fff7ed;
+  --danger: #be123c;
+  --danger-soft: #fff1f2;
+  --info: #1d4ed8;
+  --info-soft: #eff6ff;
+  --shadow-panel: 0 18px 50px rgba(15, 23, 42, 0.08);
 }
 
 @theme inline {
@@ -93,6 +112,41 @@ body {
   font-family: var(--font-cairo), system-ui, -apple-system, sans-serif;
   direction: rtl;
   overflow-x: hidden;
+}
+
+.admin-shell {
+  background:
+    radial-gradient(circle at top right, rgba(220, 38, 38, 0.08), transparent 28%),
+    radial-gradient(circle at left center, rgba(30, 41, 59, 0.06), transparent 30%),
+    linear-gradient(180deg, var(--admin-bg-start) 0%, var(--admin-bg-middle) 42%, var(--admin-bg-end) 100%);
+}
+
+.admin-grid-overlay {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-position: center;
+  background-size: 48px 48px;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.admin-panel {
+  background: var(--panel);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.admin-panel-muted {
+  background: var(--panel-muted);
+  border: 1px solid rgba(226, 232, 240, 0.75);
+}
+
+.admin-chip {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(226, 232, 240, 0.9);
 }
 
 ::selection {

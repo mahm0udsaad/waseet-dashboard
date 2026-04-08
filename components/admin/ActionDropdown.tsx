@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 type DropdownItem = {
   label: string;
@@ -18,29 +19,76 @@ type ActionDropdownProps = {
 
 export function ActionDropdown({ items }: ActionDropdownProps) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<{
+    top: number;
+    left: number;
+    placement: "top" | "bottom";
+  } | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
+
+    function updatePosition() {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const menuWidth = Math.max(menuRef.current?.offsetWidth ?? 220, 220);
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const estimatedMenuHeight = menuRef.current?.offsetHeight ?? 180;
+      const openUp =
+        viewportHeight - rect.bottom < estimatedMenuHeight + 16 &&
+        rect.top > estimatedMenuHeight + 16;
+
+      const left = Math.min(
+        Math.max(8, rect.right - menuWidth),
+        viewportWidth - menuWidth - 8
+      );
+
+      setPosition({
+        top: openUp ? rect.top - 8 : rect.bottom + 8,
+        left,
+        placement: openUp ? "top" : "bottom",
+      });
+    }
+
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        rootRef.current &&
+        !rootRef.current.contains(target) &&
+        menuRef.current &&
+        !menuRef.current.contains(target)
+      ) {
         setOpen(false);
       }
     }
+
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
+
+    updatePosition();
     document.addEventListener("mousedown", handleClick);
     document.addEventListener("keydown", handleKey);
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
     return () => {
       document.removeEventListener("mousedown", handleClick);
       document.removeEventListener("keydown", handleKey);
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
     };
   }, [open]);
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={rootRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         aria-label="فتح خيارات الإجراءات"
@@ -67,51 +115,61 @@ export function ActionDropdown({ items }: ActionDropdownProps) {
         </svg>
       </button>
 
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 top-full z-50 mt-1 min-w-[200px] rounded-xl border border-[var(--border)] bg-white py-1 shadow-lg"
-        >
-          {items.map((item) => {
-            const className = `flex w-full items-center gap-2 px-3 py-2 text-sm text-start hover:bg-slate-50 ${
-              item.variant === "danger"
-                ? "text-rose-600 hover:bg-rose-50"
-                : "text-slate-700"
-            }`;
+      {open && typeof document !== "undefined" && position
+        ? createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              className="fixed z-[220] min-w-[220px] rounded-xl border border-[var(--border)] bg-white py-1 shadow-2xl"
+              style={{
+                top: position.top,
+                left: position.left,
+                transform:
+                  position.placement === "top" ? "translateY(-100%)" : undefined,
+              }}
+            >
+              {items.map((item) => {
+                const className = `flex w-full items-center gap-2 px-3 py-2 text-sm text-start hover:bg-slate-50 ${
+                  item.variant === "danger"
+                    ? "text-rose-600 hover:bg-rose-50"
+                    : "text-slate-700"
+                }`;
 
-            if (item.href) {
-              return (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  role="menuitem"
-                  className={className}
-                  onClick={() => setOpen(false)}
-                >
-                  {item.icon}
-                  {item.label}
-                </Link>
-              );
-            }
+                if (item.href) {
+                  return (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      role="menuitem"
+                      className={className}
+                      onClick={() => setOpen(false)}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </Link>
+                  );
+                }
 
-            return (
-              <button
-                key={item.label}
-                type="button"
-                role="menuitem"
-                className={className}
-                onClick={() => {
-                  setOpen(false);
-                  item.onClick?.();
-                }}
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    role="menuitem"
+                    className={className}
+                    onClick={() => {
+                      setOpen(false);
+                      item.onClick?.();
+                    }}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }
