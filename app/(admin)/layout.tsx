@@ -67,6 +67,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           .select("id", { count: "exact", head: true })
           .gt("created_at", since);
         count = result.count ?? 0;
+      } else if (path === "/airport-requests") {
+        const result = await supabase
+          .from("airport_inspection_requests")
+          .select("id", { count: "exact", head: true })
+          .gt("created_at", since);
+        count = result.count ?? 0;
       } else if (path === "/completion-requests") {
         const result = await supabase
           .from("damin_completion_requests")

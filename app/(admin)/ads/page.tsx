@@ -36,7 +36,7 @@ export default async function AdsPage({ searchParams }: Props) {
 
   let query = supabase
     .from("ads")
-    .select("id, title, type, status, created_at, price, owner_id");
+    .select("id, title, type, status, created_at, price, owner_id, is_pinned");
 
   let countQuery = supabase
     .from("ads")
@@ -126,6 +126,11 @@ export default async function AdsPage({ searchParams }: Props) {
         ...ad,
         ownerName: profile?.display_name ?? "غير معروف",
         typeLabel: typeLabels[ad.type] ?? ad.type,
+        pinnedBadge: ad.is_pinned ? (
+          <Badge label="مثبت" tone="warning" />
+        ) : (
+          <span className="text-xs text-slate-400">—</span>
+        ),
         statusBadge: (
           <Badge
             label={ad.status === "blocked" ? "محجوب" : "نشط"}
@@ -221,6 +226,11 @@ export default async function AdsPage({ searchParams }: Props) {
               render: (row) => row.typeLabel as string,
             },
             {
+              key: "is_pinned",
+              label: "مثبت",
+              render: (row) => row.pinnedBadge,
+            },
+            {
               key: "status",
               label: "الحالة",
               render: (row) => row.statusBadge,
@@ -251,6 +261,7 @@ export default async function AdsPage({ searchParams }: Props) {
                   ownerId={row.owner_id as string}
                   ownerName={row.ownerName as string}
                   conversationId={row.conversationId as string | null}
+                  isPinned={Boolean(row.is_pinned)}
                 />
               ),
             },

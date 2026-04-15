@@ -15,6 +15,7 @@ type AdRowActionsProps = {
   ownerId: string;
   ownerName: string;
   conversationId?: string | null;
+  isPinned?: boolean;
 };
 
 export function AdRowActions({
@@ -24,12 +25,34 @@ export function AdRowActions({
   ownerId,
   ownerName,
   conversationId,
+  isPinned = false,
 }: AdRowActionsProps) {
   const router = useRouter();
   const [showDelete, setShowDelete] = useState(false);
   const [showNotify, setShowNotify] = useState(false);
   const [showOwner, setShowOwner] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [pinLoading, setPinLoading] = useState(false);
+  const [pinned, setPinned] = useState(isPinned);
+
+  async function handleTogglePin() {
+    if (pinLoading) return;
+    setPinLoading(true);
+    const next = !pinned;
+    setPinned(next);
+    try {
+      const res = await fetch(`/api/admin/ads/${adId}/${next ? "pin" : "unpin"}`, {
+        method: "POST",
+        headers: { accept: "application/json" },
+      });
+      if (!res.ok) throw new Error("Failed");
+      router.refresh();
+    } catch {
+      setPinned(!next);
+    } finally {
+      setPinLoading(false);
+    }
+  }
 
   async function handleDelete() {
     setDeleteLoading(true);
@@ -53,6 +76,10 @@ export function AdRowActions({
     ...(conversationId
       ? [{ label: "عرض المحادثة", href: `/chats?conversation=${conversationId}` }]
       : []),
+    {
+      label: pinned ? "إلغاء التثبيت في الأعلى" : "تثبيت في الأعلى",
+      onClick: handleTogglePin,
+    },
     {
       label: "عرض معلومات المالك",
       onClick: () => setShowOwner(true),

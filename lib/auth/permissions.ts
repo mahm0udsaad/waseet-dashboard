@@ -30,6 +30,8 @@ export const ROLE_NAV_ACCESS: Record<AdminRole, string[]> = {
     "/ads",
     "/orders",
     "/damin-orders",
+    "/airport-requests",
+    "/airport-requests/settings",
     "/completion-requests",
     "/receipts",
     "/payments",
@@ -48,6 +50,8 @@ export const ROLE_NAV_ACCESS: Record<AdminRole, string[]> = {
     "/ads",
     "/orders",
     "/damin-orders",
+    "/airport-requests",
+    "/airport-requests/settings",
     "/completion-requests",
     "/receipts",
     "/payments",
@@ -60,6 +64,7 @@ export const ROLE_NAV_ACCESS: Record<AdminRole, string[]> = {
   finance: [
     "/overview",
     "/damin-orders",
+    "/airport-requests",
     "/completion-requests",
     "/payments",
     "/withdrawals",
@@ -68,6 +73,7 @@ export const ROLE_NAV_ACCESS: Record<AdminRole, string[]> = {
   support_agent: [
     "/overview",
     "/damin-orders",
+    "/airport-requests",
     "/users",
     "/chats",
     "/support-inbox",
