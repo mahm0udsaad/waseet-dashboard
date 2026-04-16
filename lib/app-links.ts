@@ -21,14 +21,26 @@ export const GOOGLE_PLAY_URL = `https://play.google.com/store/apps/details?id=${
 export const APPLE_APP_ID =
   process.env.APPLE_APP_ID ?? "U99WN82SXG.com.mahm09d.kafel";
 
-// SHA-256 fingerprint of the Android release signing key.
-// Get it after the first EAS Android build:
-//   eas credentials -p android  →  production  →  Keystore  →  view fingerprints
-// Then set ANDROID_SHA256_FINGERPRINT in Vercel env vars.
-// Format: "AA:BB:CC:..." (64 hex chars separated by colons).
-export const ANDROID_SHA256_FINGERPRINT =
-  process.env.ANDROID_SHA256_FINGERPRINT ??
-  "REPLACE_WITH_RELEASE_SHA256_FINGERPRINT";
+// SHA-256 fingerprints of every Android release signing key that should be
+// trusted for App Links verification. Comma-separated — order does not matter.
+// Get values from: `eas credentials -p android` → view Keystore info.
+//
+// Both fingerprints below correspond to keystores currently in the EAS project
+// for `com.wasitalan.app`. The first one is the Default keystore (used by new
+// builds). Keeping both so a keystore switch doesn't break deep links.
+const DEFAULT_ANDROID_SHA256_FINGERPRINTS =
+  "73:0C:42:CA:CF:BD:98:8B:07:4E:B4:A0:77:E2:44:7D:3E:2D:46:C9:4F:0F:09:E8:83:3E:92:D1:36:D1:42:8B," +
+  "E4:BB:92:0A:35:FB:A6:6D:E8:91:EA:3A:B1:F8:57:7F:EE:6B:7D:15:C3:13:0B:81:C7:22:6B:7B:AF:6B:5E:A0";
+
+export const ANDROID_SHA256_FINGERPRINTS: string[] = (
+  process.env.ANDROID_SHA256_FINGERPRINT ?? DEFAULT_ANDROID_SHA256_FINGERPRINTS
+)
+  .split(",")
+  .map((fp) => fp.trim())
+  .filter(Boolean);
+
+// Back-compat single-value export — kept so existing imports still work.
+export const ANDROID_SHA256_FINGERPRINT = ANDROID_SHA256_FINGERPRINTS[0];
 
 function withScheme(pathname: string, query?: Record<string, string>) {
   const url = new URL(`kafel:///${pathname}`);

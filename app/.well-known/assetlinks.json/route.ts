@@ -1,6 +1,6 @@
 import {
   ANDROID_PACKAGE_NAME,
-  ANDROID_SHA256_FINGERPRINT,
+  ANDROID_SHA256_FINGERPRINTS,
 } from "@/lib/app-links";
 
 export const dynamic = "force-static";
@@ -13,7 +13,7 @@ export async function GET() {
         target: {
           namespace: "android_app",
           package_name: ANDROID_PACKAGE_NAME,
-          sha256_cert_fingerprints: [ANDROID_SHA256_FINGERPRINT],
+          sha256_cert_fingerprints: ANDROID_SHA256_FINGERPRINTS,
         },
       },
     ],
