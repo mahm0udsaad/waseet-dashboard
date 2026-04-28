@@ -210,16 +210,34 @@ export default async function AdsPage({ searchParams }: Props) {
             {
               key: "title",
               label: "العنوان",
-              render: (row) => (
-                <Link
-                  href={`/ads/${row.id as string}`}
-                  className="text-[var(--brand)] underline underline-offset-2"
-                >
-                  {row.title as string}
-                </Link>
-              ),
+              render: (row) => {
+                const title = row.title as string;
+                return (
+                  <Link
+                    href={`/ads/${row.id as string}`}
+                    className="block max-w-[220px] truncate text-[var(--brand)] underline underline-offset-2"
+                    title={title}
+                  >
+                    {title}
+                  </Link>
+                );
+              },
             },
-            { key: "ownerName", label: "المالك" },
+            {
+              key: "ownerName",
+              label: "المالك",
+              render: (row) => {
+                const name = (row.ownerName as string | null) ?? "—";
+                return (
+                  <span
+                    className="block max-w-[160px] truncate"
+                    title={name}
+                  >
+                    {name}
+                  </span>
+                );
+              },
+            },
             {
               key: "type",
               label: "النوع",

@@ -4,6 +4,7 @@ import { Badge } from "@/components/admin/Badge";
 import { ActionButton } from "@/components/admin/ActionButton";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { SectionCard } from "@/components/admin/SectionCard";
+import { DaminPipeline } from "@/components/admin/damin-orders/DaminPipeline";
 import { DisputeChat } from "@/components/admin/damin-orders/DisputeChat";
 import { ReceiptImage } from "@/components/admin/damin-orders/ReceiptImage";
 import { fillMissingUserContacts } from "@/lib/admin/user-contact";
@@ -130,6 +131,8 @@ export default async function DaminOrderDetailPage({ params }: Props) {
           </>
         )}
       </div>
+
+      <DaminPipeline status={order.status} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <SectionCard title="صاحب الطلب (الدافع)" description="الشخص الذي أنشأ الطلب ويدفع المبلغ.">

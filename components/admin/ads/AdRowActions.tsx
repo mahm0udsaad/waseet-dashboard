@@ -74,7 +74,7 @@ export function AdRowActions({
   const dropdownItems = [
     { label: "عرض التفاصيل", href: `/ads/${adId}` },
     ...(conversationId
-      ? [{ label: "عرض المحادثة", href: `/chats?conversation=${conversationId}` }]
+      ? [{ label: "عرض المحادثة", href: `/chats/${conversationId}` }]
       : []),
     {
       label: pinned ? "إلغاء التثبيت في الأعلى" : "تثبيت في الأعلى",

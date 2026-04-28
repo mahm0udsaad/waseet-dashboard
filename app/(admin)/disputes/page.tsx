@@ -175,7 +175,7 @@ export default async function DisputesPage({
                           <span>
                             محادثة:{" "}
                             <a
-                              href={`/chats?conversation=${dispute.conversation_id}`}
+                              href={`/chats/${dispute.conversation_id}`}
                               className="text-[var(--brand)] underline"
                             >
                               فتح

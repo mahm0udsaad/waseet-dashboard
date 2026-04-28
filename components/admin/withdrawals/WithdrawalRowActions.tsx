@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { ActionDropdown } from "@/components/admin/ActionDropdown";
+import { Check, Info, X } from "lucide-react";
 import { ConfirmationModal } from "@/components/admin/ConfirmationModal";
 import { UserInfoModal } from "@/components/admin/UserInfoModal";
 
@@ -68,26 +68,39 @@ export function WithdrawalRowActions({
 
   const canProcess = status === "pending";
 
-  const items = [
-    {
-      label: "عرض معلومات المستخدم",
-      onClick: () => setShowUser(true),
-    },
-    ...(canProcess
-      ? [
-          { label: "الموافقة على السحب", onClick: () => setShowApprove(true) },
-          {
-            label: "رفض السحب",
-            variant: "danger" as const,
-            onClick: () => setShowReject(true),
-          },
-        ]
-      : []),
-  ];
-
   return (
     <>
-      <ActionDropdown items={items} />
+      <div className="flex flex-wrap items-center gap-2">
+        {canProcess ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setShowApprove(true)}
+              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+            >
+              <Check className="h-3.5 w-3.5" />
+              موافقة
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowReject(true)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:border-rose-400 hover:bg-rose-50"
+            >
+              <X className="h-3.5 w-3.5" />
+              رفض
+            </button>
+          </>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => setShowUser(true)}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] text-slate-500 transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
+          aria-label="عرض معلومات المستخدم"
+          title="عرض معلومات المستخدم"
+        >
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </div>
 
       <ConfirmationModal
         open={showApprove}

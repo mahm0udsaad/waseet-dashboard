@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { Badge } from "@/components/admin/Badge";
 import { DataTable } from "@/components/admin/DataTable";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { PaginationControls } from "@/components/admin/PaginationControls";
+import { PaymentRowActions } from "@/components/admin/payments/PaymentRowActions";
+import { SearchFilter } from "@/components/admin/SearchFilter";
 import { SectionCard } from "@/components/admin/SectionCard";
 import { StatCard } from "@/components/admin/StatCard";
 import { formatDate, formatNumber } from "@/lib/format";
@@ -20,8 +21,7 @@ const STATUS_MAP: Record<
   canceled: { label: "ملغي", tone: "danger" },
 };
 
-const FILTER_OPTIONS = [
-  { value: "all", label: "الكل" },
+const STATUS_FILTER_OPTIONS = [
   { value: "pending", label: "معلق" },
   { value: "succeeded", label: "ناجح" },
   { value: "failed", label: "فاشل" },
@@ -30,18 +30,30 @@ const FILTER_OPTIONS = [
 ];
 
 const PAGE_SIZE = 30;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type Props = {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
 };
 
 export default async function PaymentsPage({ searchParams }: Props) {
-  const { status: filterStatus, page: pageParam } = await searchParams;
+  const { status: filterStatus, q: rawQ, page: pageParam } = await searchParams;
   const page = parsePageParam(pageParam);
   const { from, to } = getPaginationRange(page, PAGE_SIZE);
-  const activeStatus =
-    filterStatus && filterStatus !== "all" ? filterStatus : undefined;
+  const activeStatus = filterStatus ? filterStatus : undefined;
+  const q = (rawQ ?? "").trim();
   const supabase = getSupabaseServerClient();
+
+  // Resolve free-text query → matched user_ids (by display_name or phone)
+  let matchedUserIds: string[] = [];
+  if (q && !UUID_RE.test(q)) {
+    const { data: matchedUsers } = await supabase
+      .from("profiles")
+      .select("user_id")
+      .or(`display_name.ilike.%${q}%,phone.ilike.%${q}%`)
+      .limit(50);
+    matchedUserIds = (matchedUsers ?? []).map((u) => u.user_id);
+  }
 
   const [totalPayments, succeededSum, failedCount, pendingCount] =
     await Promise.all([
@@ -83,6 +95,21 @@ export default async function PaymentsPage({ searchParams }: Props) {
   if (activeStatus) {
     paymentsQuery = paymentsQuery.eq("status", activeStatus);
     filteredCountQuery = filteredCountQuery.eq("status", activeStatus);
+  }
+
+  if (q) {
+    if (UUID_RE.test(q)) {
+      paymentsQuery = paymentsQuery.eq("id", q);
+      filteredCountQuery = filteredCountQuery.eq("id", q);
+    } else {
+      // Build OR: provider_intention_id ilike, or user_id in matched set
+      const userIdsList = matchedUserIds.length
+        ? `(${matchedUserIds.join(",")})`
+        : "(00000000-0000-0000-0000-000000000000)";
+      const orFilter = `provider_intention_id.ilike.%${q}%,user_id.in.${userIdsList}`;
+      paymentsQuery = paymentsQuery.or(orFilter);
+      filteredCountQuery = filteredCountQuery.or(orFilter);
+    }
   }
 
   const [{ data: payments }, { count: filteredCount }] = await Promise.all([
@@ -151,33 +178,24 @@ export default async function PaymentsPage({ searchParams }: Props) {
         />
       </section>
 
-      <SectionCard
-        title="تصفية حسب الحالة"
-        description="اختر حالة لعرض العمليات المناسبة."
-      >
-        <div className="flex flex-wrap gap-2">
-          {FILTER_OPTIONS.map((opt) => {
-            const isActive = (filterStatus ?? "all") === opt.value;
-            return (
-              <Link
-                key={opt.value}
-                href={
-                  opt.value === "all"
-                    ? "/payments"
-                    : `/payments?status=${opt.value}`
-                }
-                className={`rounded-full border px-4 py-1.5 text-sm transition ${
-                  isActive
-                    ? "border-[var(--brand)] bg-[var(--brand)] text-white"
-                    : "border-[var(--border)] text-slate-700 hover:border-[var(--brand)] hover:text-[var(--brand)]"
-                }`}
-              >
-                {opt.label}
-              </Link>
-            );
-          })}
-        </div>
-      </SectionCard>
+      <SearchFilter
+        pathname="/payments"
+        currentQuery={{ q, status: activeStatus }}
+        fields={[
+          {
+            key: "q",
+            label: "بحث",
+            type: "text",
+            placeholder: "اسم/جوال المستخدم، أو معرف Paymob، أو UUID العملية",
+          },
+          {
+            key: "status",
+            label: "الحالة",
+            type: "select",
+            options: STATUS_FILTER_OPTIONS,
+          },
+        ]}
+      />
 
       <SectionCard
         title="قائمة المدفوعات"
@@ -212,6 +230,16 @@ export default async function PaymentsPage({ searchParams }: Props) {
               label: "التاريخ",
               render: (row) => formatDate(row.created_at as string),
             },
+            {
+              key: "actions",
+              label: "إجراءات",
+              render: (row) => (
+                <PaymentRowActions
+                  paymentId={row.id as string}
+                  status={row.status as string}
+                />
+              ),
+            },
           ]}
           getRowKey={(row) => row.id as string}
           rows={rows}
@@ -221,7 +249,10 @@ export default async function PaymentsPage({ searchParams }: Props) {
           page={page}
           pageSize={PAGE_SIZE}
           totalItems={filteredCount ?? 0}
-          query={activeStatus ? { status: activeStatus } : {}}
+          query={{
+            ...(activeStatus ? { status: activeStatus } : {}),
+            ...(q ? { q } : {}),
+          }}
         />
       </SectionCard>
     </>

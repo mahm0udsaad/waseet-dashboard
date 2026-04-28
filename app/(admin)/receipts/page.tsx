@@ -18,16 +18,29 @@ const STATUS_MAP: Record<
 };
 
 const PAGE_SIZE = 20;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type Props = {
-  searchParams: Promise<{ page?: string; status?: string }>;
+  searchParams: Promise<{ page?: string; status?: string; q?: string }>;
 };
 
 export default async function ReceiptsPage({ searchParams }: Props) {
-  const { page: pageParam, status } = await searchParams;
+  const { page: pageParam, status, q: rawQ } = await searchParams;
   const page = parsePageParam(pageParam);
   const { from, to } = getPaginationRange(page, PAGE_SIZE);
+  const q = (rawQ ?? "").trim();
   const supabase = getSupabaseServerClient();
+
+  // Resolve free-text query → matched user_ids (by display_name or phone)
+  let matchedUserIds: string[] = [];
+  if (q && !UUID_RE.test(q)) {
+    const { data: matchedUsers } = await supabase
+      .from("profiles")
+      .select("user_id")
+      .or(`display_name.ilike.%${q}%,phone.ilike.%${q}%`)
+      .limit(50);
+    matchedUserIds = (matchedUsers ?? []).map((u) => u.user_id);
+  }
 
   let query = supabase
     .from("receipts")
@@ -42,6 +55,20 @@ export default async function ReceiptsPage({ searchParams }: Props) {
   if (status) {
     query = query.eq("status", status);
     countQuery = countQuery.eq("status", status);
+  }
+
+  if (q) {
+    if (UUID_RE.test(q)) {
+      query = query.eq("id", q);
+      countQuery = countQuery.eq("id", q);
+    } else {
+      const userIdsList = matchedUserIds.length
+        ? `(${matchedUserIds.join(",")})`
+        : "(00000000-0000-0000-0000-000000000000)";
+      const orFilter = `description.ilike.%${q}%,seller_id.in.${userIdsList},buyer_id.in.${userIdsList}`;
+      query = query.or(orFilter);
+      countQuery = countQuery.or(orFilter);
+    }
   }
 
   const [{ data: receipts }, { count }] = await Promise.all([
@@ -115,8 +142,14 @@ export default async function ReceiptsPage({ searchParams }: Props) {
       <div className="mb-4">
         <SearchFilter
           pathname="/receipts"
-          currentQuery={{ status }}
+          currentQuery={{ q, status }}
           fields={[
+            {
+              key: "q",
+              label: "بحث",
+              type: "text",
+              placeholder: "وصف الإيصال، اسم/جوال أحد الأطراف، أو UUID",
+            },
             {
               key: "status",
               label: "الحالة",
@@ -193,7 +226,7 @@ export default async function ReceiptsPage({ searchParams }: Props) {
           page={page}
           pageSize={PAGE_SIZE}
           totalItems={count ?? 0}
-          query={{ status }}
+          query={{ ...(status ? { status } : {}), ...(q ? { q } : {}) }}
         />
       </SectionCard>
     </>

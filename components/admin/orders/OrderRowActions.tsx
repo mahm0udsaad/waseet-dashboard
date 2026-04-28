@@ -175,7 +175,7 @@ export function OrderRowActions({
   const items = [
     { label: "عرض التفاصيل", href: `/orders/${orderId}` },
     ...(conversationId
-      ? [{ label: "عرض المحادثة", href: `/chats?conversation=${conversationId}` }]
+      ? [{ label: "عرض المحادثة", href: `/chats/${conversationId}` }]
       : []),
     ...(receiptId
       ? [{ label: "عرض الإيصال", href: `/receipts?id=${receiptId}` }]

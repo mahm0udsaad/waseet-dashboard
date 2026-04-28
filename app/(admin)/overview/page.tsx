@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   AlertTriangle,
   ArrowLeft,
+  Banknote,
   CircleDollarSign,
   MessageSquareText,
   ReceiptText,
@@ -39,6 +40,8 @@ export default async function OverviewPage() {
     receiptsTotal,
     paymentsTotal,
     paymentsSucceeded,
+    bankTransfersPending,
+    bankTransfersPendingAmounts,
     withdrawalsPending,
     withdrawalsPendingAmounts,
     recentUsers,
@@ -103,6 +106,16 @@ export default async function OverviewPage() {
       .select("id", { count: "exact", head: true })
       .eq("status", "succeeded"),
     supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("payment_method", "bank_transfer")
+      .eq("status", "awaiting_admin_transfer_approval"),
+    supabase
+      .from("orders")
+      .select("amount")
+      .eq("payment_method", "bank_transfer")
+      .eq("status", "awaiting_admin_transfer_approval"),
+    supabase
       .from("withdrawal_requests")
       .select("id", { count: "exact", head: true })
       .eq("status", "pending"),
@@ -131,6 +144,10 @@ export default async function OverviewPage() {
     (sum, row) => sum + (Number(row.amount) || 0),
     0
   );
+  const pendingBankTransferAmount = (bankTransfersPendingAmounts.data ?? []).reduce(
+    (sum, row) => sum + (Number(row.amount) || 0),
+    0
+  );
 
   const totalDaminOrders =
     (daminCreated.count ?? 0) +
@@ -142,6 +159,7 @@ export default async function OverviewPage() {
   const totalUrgentItems =
     (daminDisputed.count ?? 0) +
     (daminPaymentSubmitted.count ?? 0) +
+    (bankTransfersPending.count ?? 0) +
     (withdrawalsPending.count ?? 0) +
     (chatsOpen.count ?? 0);
 
@@ -182,6 +200,17 @@ export default async function OverviewPage() {
             "border-amber-200 bg-[var(--warning-soft)] text-[var(--warning)]",
         }
       : null,
+    (bankTransfersPending.count ?? 0) > 0
+      ? {
+          href: "/bank-transfers",
+          label: "تحويلات بنكية بانتظار التأكيد",
+          value: `${formatNumber(pendingBankTransferAmount)} ر.س`,
+          helper: `${formatNumber(bankTransfersPending.count ?? 0)} تحويل`,
+          icon: Banknote,
+          tone:
+            "border-amber-200 bg-[var(--warning-soft)] text-[var(--warning)]",
+        }
+      : null,
     (withdrawalsPending.count ?? 0) > 0
       ? {
           href: "/withdrawals?status=pending",
@@ -217,26 +246,31 @@ export default async function OverviewPage() {
       label: "تم الإنشاء",
       value: formatNumber(daminCreated.count ?? 0),
       tone: "neutral" as const,
+      href: "/damin-orders?status=created",
     },
     {
       label: "قيد التأكيد",
       value: formatNumber(daminPending.count ?? 0),
       tone: "warning" as const,
+      href: "/damin-orders?status=pending_confirmations",
     },
     {
       label: "بانتظار الدفع",
       value: formatNumber(daminPaymentSubmitted.count ?? 0),
       tone: "warning" as const,
+      href: "/damin-orders?status=payment_submitted",
     },
     {
       label: "مكتملة",
       value: formatNumber(daminCompleted.count ?? 0),
       tone: "success" as const,
+      href: "/damin-orders?status=completed",
     },
     {
       label: "نزاعات",
       value: formatNumber(daminDisputed.count ?? 0),
       tone: "danger" as const,
+      href: "/damin-orders?status=disputed",
     },
   ];
 
@@ -267,7 +301,10 @@ export default async function OverviewPage() {
             </p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[24px] border border-white/80 bg-white/80 p-4">
+              <Link
+                href="/damin-orders?status=completed"
+                className="block rounded-[24px] border border-white/80 bg-white/80 p-4 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+              >
                 <p className="text-xs font-medium text-[var(--text-subtle)]">
                   إيرادات العمولات
                 </p>
@@ -277,9 +314,12 @@ export default async function OverviewPage() {
                 <p className="mt-1 text-xs text-[var(--text-subtle)]">
                   من {formatNumber(daminCompleted.count ?? 0)} طلب مكتمل
                 </p>
-              </div>
+              </Link>
 
-              <div className="rounded-[24px] border border-white/80 bg-white/80 p-4">
+              <Link
+                href="/damin-orders"
+                className="block rounded-[24px] border border-white/80 bg-white/80 p-4 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+              >
                 <p className="text-xs font-medium text-[var(--text-subtle)]">
                   طلبات الضامن
                 </p>
@@ -289,9 +329,12 @@ export default async function OverviewPage() {
                 <p className="mt-1 text-xs text-[var(--text-subtle)]">
                   {formatNumber(daminPending.count ?? 0)} قيد التأكيد الآن
                 </p>
-              </div>
+              </Link>
 
-              <div className="rounded-[24px] border border-white/80 bg-white/80 p-4">
+              <Link
+                href="/payments?status=succeeded"
+                className="block rounded-[24px] border border-white/80 bg-white/80 p-4 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+              >
                 <p className="text-xs font-medium text-[var(--text-subtle)]">
                   المدفوعات الناجحة
                 </p>
@@ -301,7 +344,7 @@ export default async function OverviewPage() {
                 <p className="mt-1 text-xs text-[var(--text-subtle)]">
                   من أصل {formatNumber(paymentsTotal.count ?? 0)} عملية
                 </p>
-              </div>
+              </Link>
             </div>
 
             <div className="mt-6 flex flex-wrap gap-2">
@@ -377,23 +420,27 @@ export default async function OverviewPage() {
           label="إجمالي المستخدمين"
           value={formatNumber(usersTotal.count ?? 0)}
           hint={`${formatNumber(usersActive.count ?? 0)} نشط · ${formatNumber(usersBanned.count ?? 0)} محظور`}
+          href="/users"
         />
         <StatCard
           label="الإعلانات"
           value={formatNumber(adsTotal.count ?? 0)}
           hint={`${formatNumber(adsActive.count ?? 0)} نشط · ${formatNumber(adsBlocked.count ?? 0)} محجوب`}
+          href="/ads"
         />
         <StatCard
           label="الطلبات"
           value={formatNumber(ordersTotal.count ?? 0)}
           hint={`${formatNumber(ordersPendingPayment.count ?? 0)} بانتظار الدفع`}
           tone="warning"
+          href="/orders"
         />
         <StatCard
           label="المحادثات المفتوحة"
           value={formatNumber(chatsOpen.count ?? 0)}
           hint="تحتاج متابعة من فريق الدعم"
           tone={chatsOpen.count ? "warning" : "neutral"}
+          href="/support-inbox"
         />
       </section>
 
@@ -403,7 +450,10 @@ export default async function OverviewPage() {
           description="عرض سريع للمبالغ المحققة والمعلّقة حتى تبقى حالة التحصيل واضحة من أول نظرة."
         >
           <div className="grid gap-3 lg:grid-cols-3">
-            <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4">
+            <Link
+              href="/damin-orders?status=completed"
+              className="block rounded-[24px] border border-emerald-200 bg-emerald-50 p-4 transition hover:-translate-y-0.5 hover:shadow-sm"
+            >
               <p className="text-xs font-medium text-emerald-700">
                 إيرادات العمولات
               </p>
@@ -413,9 +463,12 @@ export default async function OverviewPage() {
               <p className="mt-1 text-xs text-emerald-700">
                 متولدة من الطلبات المكتملة
               </p>
-            </div>
+            </Link>
 
-            <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-4">
+            <Link
+              href="/damin-orders?status=payment_submitted"
+              className="block rounded-[24px] border border-amber-200 bg-amber-50 p-4 transition hover:-translate-y-0.5 hover:shadow-sm"
+            >
               <p className="text-xs font-medium text-amber-700">
                 مبالغ بانتظار التحقق
               </p>
@@ -425,9 +478,12 @@ export default async function OverviewPage() {
               <p className="mt-1 text-xs text-amber-700">
                 مرتبطة بطلبات ضامن لم تُعتمد بعد
               </p>
-            </div>
+            </Link>
 
-            <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+            <Link
+              href="/withdrawals?status=pending"
+              className="block rounded-[24px] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:shadow-sm"
+            >
               <p className="text-xs font-medium text-slate-600">
                 طلبات سحب معلقة
               </p>
@@ -437,7 +493,7 @@ export default async function OverviewPage() {
               <p className="mt-1 text-xs text-slate-600">
                 {formatNumber(withdrawalsPending.count ?? 0)} طلب يحتاج قرارًا
               </p>
-            </div>
+            </Link>
           </div>
         </SectionCard>
 
@@ -447,15 +503,16 @@ export default async function OverviewPage() {
         >
           <div className="grid gap-3 sm:grid-cols-2">
             {pipelineItems.map((item) => (
-              <div
+              <Link
                 key={item.label}
-                className="rounded-[22px] border border-slate-200 bg-slate-50/80 p-4"
+                href={item.href}
+                className="block rounded-[22px] border border-slate-200 bg-slate-50/80 p-4 transition hover:-translate-y-0.5 hover:border-rose-200 hover:bg-white hover:shadow-sm"
               >
                 <Badge label={item.label} tone={item.tone} />
                 <p className="mt-4 text-2xl font-semibold text-slate-950">
                   {item.value}
                 </p>
-              </div>
+              </Link>
             ))}
           </div>
         </SectionCard>
@@ -578,47 +635,59 @@ export default async function OverviewPage() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <div className="admin-panel rounded-[28px] p-5">
+        <Link
+          href="/users"
+          className="admin-panel block rounded-[28px] p-5 transition hover:-translate-y-0.5 hover:shadow-sm"
+        >
           <div className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
               <Users className="h-4 w-4" />
             </span>
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-slate-950">المستخدمون</p>
               <p className="text-xs text-[var(--text-subtle)]">
                 {formatNumber(usersActive.count ?? 0)} نشطون الآن
               </p>
             </div>
+            <ArrowLeft className="h-4 w-4 text-slate-400" />
           </div>
-        </div>
+        </Link>
 
-        <div className="admin-panel rounded-[28px] p-5">
+        <Link
+          href="/damin-orders?status=payment_submitted"
+          className="admin-panel block rounded-[28px] p-5 transition hover:-translate-y-0.5 hover:shadow-sm"
+        >
           <div className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
               <Wallet className="h-4 w-4" />
             </span>
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-slate-950">الدفع والتحصيل</p>
               <p className="text-xs text-[var(--text-subtle)]">
                 {formatNumber(daminPaymentSubmitted.count ?? 0)} طلبات ضامن بانتظار التحقق
               </p>
             </div>
+            <ArrowLeft className="h-4 w-4 text-slate-400" />
           </div>
-        </div>
+        </Link>
 
-        <div className="admin-panel rounded-[28px] p-5">
+        <Link
+          href="/payments"
+          className="admin-panel block rounded-[28px] p-5 transition hover:-translate-y-0.5 hover:shadow-sm"
+        >
           <div className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
               <CircleDollarSign className="h-4 w-4" />
             </span>
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-slate-950">المعاملات المالية</p>
               <p className="text-xs text-[var(--text-subtle)]">
                 {formatNumber(paymentsTotal.count ?? 0)} عملية دفع و{formatNumber(receiptsTotal.count ?? 0)} إيصال
               </p>
             </div>
+            <ArrowLeft className="h-4 w-4 text-slate-400" />
           </div>
-        </div>
+        </Link>
       </section>
     </>
   );

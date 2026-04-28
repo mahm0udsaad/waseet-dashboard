@@ -61,6 +61,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           .select("id", { count: "exact", head: true })
           .gt("created_at", since);
         count = result.count ?? 0;
+      } else if (path === "/bank-transfers") {
+        const result = await supabase
+          .from("orders")
+          .select("id", { count: "exact", head: true })
+          .eq("payment_method", "bank_transfer")
+          .eq("status", "awaiting_admin_transfer_approval");
+        count = result.count ?? 0;
       } else if (path === "/damin-orders") {
         const result = await supabase
           .from("damin_orders")

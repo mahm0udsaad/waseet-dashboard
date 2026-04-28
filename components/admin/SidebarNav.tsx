@@ -5,6 +5,7 @@ import {
   FileText,
   ImageIcon,
   LayoutDashboard,
+  Banknote,
   Logs,
   Megaphone,
   MessageSquareText,
@@ -22,6 +23,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { normalizeAdminPageKey } from "@/lib/admin/sidebar";
+import { useRealtimeBadgeBumps } from "./useRealtimeBadgeBumps";
 
 type NavItem = {
   href: string;
@@ -43,6 +45,7 @@ const navIcons = {
   "/support-agents": UserSquare2,
   "/ads": Megaphone,
   "/orders": ShoppingBag,
+  "/bank-transfers": Banknote,
   "/damin-orders": Wallet,
   "/airport-requests": Plane,
   "/airport-requests/settings": Settings,
@@ -65,6 +68,8 @@ export function SidebarNav({ items, roleLabel, pendingCount }: SidebarNavProps) 
     () => normalizeAdminPageKey(pathname ?? ""),
     [pathname]
   );
+
+  const realtimeBumps = useRealtimeBadgeBumps(currentPageKey);
 
   useEffect(() => {
     if (!currentPageKey) return;
@@ -106,7 +111,7 @@ export function SidebarNav({ items, roleLabel, pendingCount }: SidebarNavProps) 
           const count =
             item.href === currentPageKey || locallyRead[item.href]
               ? 0
-              : (item.badgeCount ?? 0);
+              : (item.badgeCount ?? 0) + (realtimeBumps[item.href] ?? 0);
 
           return (
             <Link
