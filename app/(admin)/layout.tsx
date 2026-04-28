@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { SidebarNav } from "@/components/admin/SidebarNav";
+import { CommandPalette } from "@/components/admin/CommandPalette";
 import { TopBar } from "@/components/admin/TopBar";
 import { ADMIN_NAV_ITEMS, TRACKED_BADGE_PATHS } from "@/lib/admin/sidebar";
 import { requireRole } from "@/lib/auth/requireRole";
@@ -165,6 +166,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           <main className="flex min-w-0 flex-col gap-5">{children}</main>
         </div>
       </div>
+      <CommandPalette items={allowedItems.map(({ href, label, description, group }) => ({ href, label, description, group }))} />
     </div>
   );
 }

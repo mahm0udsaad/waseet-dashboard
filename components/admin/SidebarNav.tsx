@@ -20,6 +20,7 @@ import {
   Wallet,
   AlertTriangle,
   LifeBuoy,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -70,9 +71,31 @@ const navIcons = {
   "/audit-logs": Logs,
 } as const;
 
+const COLLAPSED_STORAGE_KEY = "admin.sidebar.collapsedGroups.v1";
+
 export function SidebarNav({ items, roleLabel, pendingCount }: SidebarNavProps) {
   const pathname = usePathname();
   const [locallyRead, setLocallyRead] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState<Record<AdminNavGroupId, boolean>>(
+    {} as Record<AdminNavGroupId, boolean>
+  );
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(COLLAPSED_STORAGE_KEY);
+      if (raw) setCollapsed(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  function toggleGroup(id: AdminNavGroupId) {
+    setCollapsed((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      try {
+        localStorage.setItem(COLLAPSED_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }
 
   const currentPageKey = useMemo(
     () => normalizeAdminPageKey(pathname ?? ""),
@@ -115,11 +138,16 @@ export function SidebarNav({ items, roleLabel, pendingCount }: SidebarNavProps) 
     <aside className="admin-panel overflow-hidden rounded-[28px]">
       <div className="flex items-center justify-between gap-3 border-b border-slate-200/70 px-4 py-3">
         <p className="text-sm font-semibold text-slate-900">{roleLabel}</p>
-        {pendingCount > 0 ? (
-          <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700">
-            {formatBadgeCount(pendingCount)}
-          </span>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {pendingCount > 0 ? (
+            <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700">
+              {formatBadgeCount(pendingCount)}
+            </span>
+          ) : null}
+          <kbd className="hidden items-center gap-0.5 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 sm:inline-flex">
+            ⌘K
+          </kbd>
+        </div>
       </div>
 
       <nav className="flex flex-col gap-3 p-2">
@@ -127,15 +155,39 @@ export function SidebarNav({ items, roleLabel, pendingCount }: SidebarNavProps) 
           const groupItems = grouped.get(group.id);
           if (!groupItems || groupItems.length === 0) return null;
 
+          const isCollapsed = !!collapsed[group.id];
+          const groupHasActive = groupItems.some((i) => isActive(i.href));
+          const groupBadgeTotal = groupItems.reduce((sum, i) => {
+            if (i.href === currentPageKey || locallyRead[i.href]) return sum;
+            return sum + (i.badgeCount ?? 0) + (realtimeBumps[i.href] ?? 0);
+          }, 0);
+          const showCollapsed = isCollapsed && !groupHasActive;
+
           return (
             <div key={group.id} className="flex flex-col gap-0.5">
               {group.id !== "overview" ? (
-                <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-subtle)]">
-                  {group.label}
-                </p>
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.id)}
+                  className="flex items-center justify-between gap-2 rounded-md px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-subtle)] hover:text-slate-700"
+                >
+                  <span>{group.label}</span>
+                  <span className="flex items-center gap-1.5">
+                    {showCollapsed && groupBadgeTotal > 0 ? (
+                      <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700">
+                        {formatBadgeCount(groupBadgeTotal)}
+                      </span>
+                    ) : null}
+                    <ChevronDown
+                      className={`h-3 w-3 transition-transform ${
+                        showCollapsed ? "-rotate-90" : ""
+                      }`}
+                    />
+                  </span>
+                </button>
               ) : null}
 
-              {groupItems.map((item) => {
+              {showCollapsed ? null : groupItems.map((item) => {
                 const active = isActive(item.href);
                 const Icon =
                   navIcons[item.href as keyof typeof navIcons] ?? LayoutDashboard;
