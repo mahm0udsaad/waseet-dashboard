@@ -148,7 +148,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           pendingCount={overviewCount}
           sectionCount={allowedItems.length}
         />
-        <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="grid gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
           <div className="xl:sticky xl:top-5 xl:self-start">
             <SidebarNav
               roleLabel={roleLabel}
