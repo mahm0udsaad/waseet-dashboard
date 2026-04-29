@@ -107,17 +107,17 @@ export function SearchFilter({
           ))}
         </div>
 
-        <div className="flex items-end gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end lg:justify-end">
           <button
             type="submit"
-            className="rounded-full bg-[var(--brand)] px-4 py-3 text-sm font-medium text-white transition hover:brightness-95"
+            className="w-full rounded-full bg-[var(--brand)] px-4 py-3 text-sm font-medium text-white transition hover:brightness-95 sm:w-auto"
           >
             تطبيق التصفية
           </button>
           <button
             type="button"
             onClick={handleReset}
-            className="rounded-full border border-[var(--border)] bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300"
+            className="w-full rounded-full border border-[var(--border)] bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 sm:w-auto"
           >
             مسح
           </button>

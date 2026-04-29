@@ -14,7 +14,7 @@ export function TopBar({ roleLabel, pendingCount, sectionCount }: TopBarProps) {
   }).format(new Date());
 
   return (
-    <header className="admin-panel relative overflow-hidden rounded-[28px] p-5 sm:p-6">
+    <header className="admin-panel relative overflow-hidden rounded-[28px] p-4 sm:p-6">
       <div className="absolute inset-y-0 left-0 hidden w-40 bg-gradient-to-r from-rose-50 to-transparent lg:block" />
       <div className="relative flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
         <div className="space-y-4">
@@ -23,18 +23,19 @@ export function TopBar({ roleLabel, pendingCount, sectionCount }: TopBarProps) {
             مركز العمليات الإدارية
           </div>
 
-          <Link href="/overview" className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-950/5 ring-1 ring-slate-200">
+          <Link href="/overview" className="flex items-start gap-3 sm:items-center sm:gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl bg-slate-950/5 ring-1 ring-slate-200 sm:h-16 sm:w-16">
               <Image
                 src="/icon-main.png"
                 alt="وسيط الآن"
                 width={52}
                 height={52}
                 priority
+                className="h-auto w-10 sm:w-[52px]"
               />
             </div>
-            <div className="space-y-1">
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
+            <div className="min-w-0 space-y-1">
+              <h1 className="text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">
                 لوحة تحكم وسيط الآن
               </h1>
               <p className="max-w-2xl text-sm leading-6 text-[var(--text-muted)]">
@@ -59,7 +60,7 @@ export function TopBar({ roleLabel, pendingCount, sectionCount }: TopBarProps) {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3 xl:w-[420px]">
+        <div className="grid gap-3 sm:grid-cols-2 xl:w-[420px] xl:grid-cols-3">
           <Link
             href="/support-inbox"
             className="admin-panel-muted flex min-h-24 flex-col justify-between rounded-3xl p-4 transition hover:-translate-y-0.5 hover:shadow-md"

@@ -281,6 +281,35 @@ export default async function OverviewPage() {
         subtitle="واجهة قيادة مركزة لأكثر ما يحتاج متابعة اليوم: التنبيهات، المؤشرات، وآخر الحركة على المنصة."
       />
 
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="إجمالي المستخدمين"
+          value={formatNumber(usersTotal.count ?? 0)}
+          hint={`${formatNumber(usersActive.count ?? 0)} نشط · ${formatNumber(usersBanned.count ?? 0)} محظور`}
+          href="/users"
+        />
+        <StatCard
+          label="الإعلانات"
+          value={formatNumber(adsTotal.count ?? 0)}
+          hint={`${formatNumber(adsActive.count ?? 0)} نشط · ${formatNumber(adsBlocked.count ?? 0)} محجوب`}
+          href="/ads"
+        />
+        <StatCard
+          label="الطلبات"
+          value={formatNumber(ordersTotal.count ?? 0)}
+          hint={`${formatNumber(ordersPendingPayment.count ?? 0)} بانتظار الدفع`}
+          tone="warning"
+          href="/orders"
+        />
+        <StatCard
+          label="المحادثات المفتوحة"
+          value={formatNumber(chatsOpen.count ?? 0)}
+          hint="تحتاج متابعة من فريق الدعم"
+          tone={chatsOpen.count ? "warning" : "neutral"}
+          href="/support-inbox"
+        />
+      </section>
+
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.95fr)]">
         <div className="admin-panel relative overflow-hidden rounded-[32px] p-6 sm:p-7">
           <div className="absolute left-0 top-0 h-40 w-40 rounded-full bg-rose-100 blur-3xl" />
@@ -413,35 +442,6 @@ export default async function OverviewPage() {
             )}
           </div>
         </div>
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="إجمالي المستخدمين"
-          value={formatNumber(usersTotal.count ?? 0)}
-          hint={`${formatNumber(usersActive.count ?? 0)} نشط · ${formatNumber(usersBanned.count ?? 0)} محظور`}
-          href="/users"
-        />
-        <StatCard
-          label="الإعلانات"
-          value={formatNumber(adsTotal.count ?? 0)}
-          hint={`${formatNumber(adsActive.count ?? 0)} نشط · ${formatNumber(adsBlocked.count ?? 0)} محجوب`}
-          href="/ads"
-        />
-        <StatCard
-          label="الطلبات"
-          value={formatNumber(ordersTotal.count ?? 0)}
-          hint={`${formatNumber(ordersPendingPayment.count ?? 0)} بانتظار الدفع`}
-          tone="warning"
-          href="/orders"
-        />
-        <StatCard
-          label="المحادثات المفتوحة"
-          value={formatNumber(chatsOpen.count ?? 0)}
-          hint="تحتاج متابعة من فريق الدعم"
-          tone={chatsOpen.count ? "warning" : "neutral"}
-          href="/support-inbox"
-        />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">

@@ -46,7 +46,7 @@ export function PaginationControls({
   };
 
   return (
-    <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4 text-sm">
+    <div className="mt-6 flex flex-col gap-3 border-t border-slate-200 pt-4 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
       <p className="rounded-full bg-slate-100 px-3 py-1.5 text-[var(--text-muted)]">
         عرض {summary.from}-{summary.to} من {totalItems}
       </p>

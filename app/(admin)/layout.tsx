@@ -143,13 +143,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <div className="admin-shell relative min-h-screen px-3 py-4 sm:px-5 lg:px-6">
       <div className="admin-grid-overlay absolute inset-0" />
-      <div className="relative mx-auto flex max-w-[1520px] flex-col gap-5">
+      <div className="relative mx-auto flex max-w-[1520px] flex-col gap-4 sm:gap-5">
         <TopBar
           roleLabel={roleLabel}
           pendingCount={overviewCount}
           sectionCount={allowedItems.length}
         />
-        <div className="grid gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
+        <div className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)] xl:gap-5">
           <div className="xl:sticky xl:top-5 xl:self-start">
             <SidebarNav
               roleLabel={roleLabel}
@@ -163,7 +163,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
               }))}
             />
           </div>
-          <main className="flex min-w-0 flex-col gap-5">{children}</main>
+          <main className="flex min-w-0 flex-col gap-4 sm:gap-5">{children}</main>
         </div>
       </div>
       <CommandPalette items={allowedItems.map(({ href, label, description, group }) => ({ href, label, description, group }))} />

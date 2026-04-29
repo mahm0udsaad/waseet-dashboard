@@ -48,7 +48,7 @@ export function DataTable<Row extends Record<string, unknown>>({
       {rows.map((row, index) => (
         <div
           key={getRowKey ? getRowKey(row, index) : `row-${index}`}
-          className="overflow-visible rounded-[24px] border border-slate-200 bg-white p-4 text-sm shadow-sm transition hover:shadow-md"
+          className="overflow-visible rounded-[24px] border border-slate-200 bg-white p-4 text-sm shadow-sm transition hover:shadow-md sm:p-5"
         >
           <div
             className="grid gap-3 md:items-center md:[grid-template-columns:var(--desktop-template)]"
@@ -79,8 +79,8 @@ export function DataTable<Row extends Record<string, unknown>>({
                   <div
                     className={
                       isActionsColumn
-                        ? "flex items-center justify-between gap-3 md:justify-start"
-                        : "text-base font-medium text-slate-900"
+                        ? "flex flex-wrap items-center justify-between gap-3 md:justify-start"
+                        : "break-words text-base font-medium text-slate-900"
                     }
                   >
                     {column.render
@@ -94,7 +94,7 @@ export function DataTable<Row extends Record<string, unknown>>({
         </div>
       ))}
       {rows.length === 0 && (
-        <div className="rounded-[24px] border border-dashed border-[var(--border)] bg-white p-10 text-center">
+        <div className="rounded-[24px] border border-dashed border-[var(--border)] bg-white p-8 text-center sm:p-10">
           {emptyIcon && <p className="mb-2 text-2xl">{emptyIcon}</p>}
           <p className="text-sm text-[var(--text-muted)]">{emptyMessage}</p>
         </div>

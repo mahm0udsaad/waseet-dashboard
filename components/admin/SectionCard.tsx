@@ -14,7 +14,7 @@ export function SectionCard({
   children,
 }: SectionCardProps) {
   return (
-    <section className="admin-panel rounded-[28px] p-5 sm:p-6">
+    <section className="admin-panel rounded-[28px] p-4 sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1">
           <h2 className="text-xl font-semibold text-slate-950">{title}</h2>

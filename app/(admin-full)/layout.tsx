@@ -36,7 +36,7 @@ export default async function AdminFullLayout({ children }: { children: ReactNod
   return (
     <div className="admin-shell relative min-h-screen px-3 py-4 sm:px-5 lg:px-6">
       <div className="admin-grid-overlay absolute inset-0" />
-      <div className="relative mx-auto flex max-w-[1520px] flex-col gap-5">
+      <div className="relative mx-auto flex max-w-[1520px] flex-col gap-4 sm:gap-5">
         <TopBar
           roleLabel={roleLabel}
           pendingCount={pendingCount ?? 0}

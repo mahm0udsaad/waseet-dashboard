@@ -21,6 +21,8 @@ import {
   AlertTriangle,
   LifeBuoy,
   ChevronDown,
+  Menu,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -76,6 +78,7 @@ const COLLAPSED_STORAGE_KEY = "admin.sidebar.collapsedGroups.v1";
 export function SidebarNav({ items, roleLabel, pendingCount }: SidebarNavProps) {
   const pathname = usePathname();
   const [locallyRead, setLocallyRead] = useState<Record<string, boolean>>({});
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<AdminNavGroupId, boolean>>(
     {} as Record<AdminNavGroupId, boolean>
   );
@@ -114,6 +117,21 @@ export function SidebarNav({ items, roleLabel, pendingCount }: SidebarNavProps) 
     });
   }, [currentPageKey]);
 
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen]);
+
   function isActive(path: string) {
     return pathname === path || (pathname?.startsWith(`${path}/`) ?? false);
   }
@@ -134,110 +152,179 @@ export function SidebarNav({ items, roleLabel, pendingCount }: SidebarNavProps) 
     return map;
   }, [items]);
 
+  const renderNavLink = (item: NavItem, compact = false) => {
+    const active = isActive(item.href);
+    const Icon = navIcons[item.href as keyof typeof navIcons] ?? LayoutDashboard;
+    const count =
+      item.href === currentPageKey || locallyRead[item.href]
+        ? 0
+        : (item.badgeCount ?? 0) + (realtimeBumps[item.href] ?? 0);
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        title={item.description}
+        onClick={() => setLocallyRead((prev) => ({ ...prev, [item.href]: true }))}
+        className={
+          compact
+            ? `group flex min-w-[150px] items-center gap-2 rounded-2xl border px-3 py-2.5 text-sm transition ${
+                active
+                  ? "border-rose-200 bg-rose-50 text-rose-900"
+                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              }`
+            : `group flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition ${
+                active
+                  ? "bg-rose-50 text-rose-900"
+                  : "text-slate-700 hover:bg-slate-100"
+              }`
+        }
+      >
+        <Icon
+          className={`h-4 w-4 shrink-0 ${
+            active
+              ? "text-rose-600"
+              : "text-slate-500 group-hover:text-slate-900"
+          }`}
+        />
+        <span className="min-w-0 flex-1 truncate font-medium">{item.label}</span>
+        {count > 0 ? (
+          <span
+            className={`inline-flex min-w-6 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+              active
+                ? "bg-rose-600 text-white"
+                : "bg-rose-100 text-rose-700"
+            }`}
+          >
+            {formatBadgeCount(count)}
+          </span>
+        ) : null}
+      </Link>
+    );
+  };
+
+  const renderNavSections = () => (
+    <>
+      {ADMIN_NAV_GROUPS.map((group) => {
+        const groupItems = grouped.get(group.id);
+        if (!groupItems || groupItems.length === 0) return null;
+
+        const isCollapsed = !!collapsed[group.id];
+        const groupHasActive = groupItems.some((i) => isActive(i.href));
+        const groupBadgeTotal = groupItems.reduce((sum, i) => {
+          if (i.href === currentPageKey || locallyRead[i.href]) return sum;
+          return sum + (i.badgeCount ?? 0) + (realtimeBumps[i.href] ?? 0);
+        }, 0);
+        const showCollapsed = isCollapsed && !groupHasActive;
+
+        return (
+          <div key={group.id} className="flex flex-col gap-0.5">
+            {group.id !== "overview" ? (
+              <button
+                type="button"
+                onClick={() => toggleGroup(group.id)}
+                className="flex items-center justify-between gap-2 rounded-md px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-subtle)] hover:text-slate-700"
+              >
+                <span>{group.label}</span>
+                <span className="flex items-center gap-1.5">
+                  {showCollapsed && groupBadgeTotal > 0 ? (
+                    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700">
+                      {formatBadgeCount(groupBadgeTotal)}
+                    </span>
+                  ) : null}
+                  <ChevronDown
+                    className={`h-3 w-3 transition-transform ${
+                      showCollapsed ? "-rotate-90" : ""
+                    }`}
+                  />
+                </span>
+              </button>
+            ) : null}
+
+            {showCollapsed ? null : groupItems.map((item) => renderNavLink(item))}
+          </div>
+        );
+      })}
+    </>
+  );
+
   return (
-    <aside className="admin-panel overflow-hidden rounded-[28px]">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-200/70 px-4 py-3">
-        <p className="text-sm font-semibold text-slate-900">{roleLabel}</p>
-        <div className="flex items-center gap-2">
+    <>
+      <div className="fixed right-3 top-3 z-50 xl:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          className="admin-panel flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg"
+          aria-label="فتح القائمة الجانبية"
+          aria-expanded={mobileOpen}
+        >
+          <Menu className="h-4 w-4" />
+          <span>القائمة</span>
           {pendingCount > 0 ? (
-            <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700">
+            <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700">
               {formatBadgeCount(pendingCount)}
             </span>
           ) : null}
-          <kbd className="hidden items-center gap-0.5 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 sm:inline-flex">
-            ⌘K
-          </kbd>
-        </div>
+        </button>
       </div>
 
-      <nav className="flex flex-col gap-3 p-2">
-        {ADMIN_NAV_GROUPS.map((group) => {
-          const groupItems = grouped.get(group.id);
-          if (!groupItems || groupItems.length === 0) return null;
-
-          const isCollapsed = !!collapsed[group.id];
-          const groupHasActive = groupItems.some((i) => isActive(i.href));
-          const groupBadgeTotal = groupItems.reduce((sum, i) => {
-            if (i.href === currentPageKey || locallyRead[i.href]) return sum;
-            return sum + (i.badgeCount ?? 0) + (realtimeBumps[i.href] ?? 0);
-          }, 0);
-          const showCollapsed = isCollapsed && !groupHasActive;
-
-          return (
-            <div key={group.id} className="flex flex-col gap-0.5">
-              {group.id !== "overview" ? (
-                <button
-                  type="button"
-                  onClick={() => toggleGroup(group.id)}
-                  className="flex items-center justify-between gap-2 rounded-md px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-subtle)] hover:text-slate-700"
-                >
-                  <span>{group.label}</span>
-                  <span className="flex items-center gap-1.5">
-                    {showCollapsed && groupBadgeTotal > 0 ? (
-                      <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700">
-                        {formatBadgeCount(groupBadgeTotal)}
-                      </span>
-                    ) : null}
-                    <ChevronDown
-                      className={`h-3 w-3 transition-transform ${
-                        showCollapsed ? "-rotate-90" : ""
-                      }`}
-                    />
-                  </span>
-                </button>
-              ) : null}
-
-              {showCollapsed ? null : groupItems.map((item) => {
-                const active = isActive(item.href);
-                const Icon =
-                  navIcons[item.href as keyof typeof navIcons] ?? LayoutDashboard;
-                const count =
-                  item.href === currentPageKey || locallyRead[item.href]
-                    ? 0
-                    : (item.badgeCount ?? 0) + (realtimeBumps[item.href] ?? 0);
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    title={item.description}
-                    onClick={() =>
-                      setLocallyRead((prev) => ({ ...prev, [item.href]: true }))
-                    }
-                    className={`group flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition ${
-                      active
-                        ? "bg-rose-50 text-rose-900"
-                        : "text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    <Icon
-                      className={`h-4 w-4 shrink-0 ${
-                        active
-                          ? "text-rose-600"
-                          : "text-slate-500 group-hover:text-slate-900"
-                      }`}
-                    />
-                    <span className="min-w-0 flex-1 truncate font-medium">
-                      {item.label}
-                    </span>
-                    {count > 0 ? (
-                      <span
-                        className={`inline-flex min-w-6 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-                          active
-                            ? "bg-rose-600 text-white"
-                            : "bg-rose-100 text-rose-700"
-                        }`}
-                      >
-                        {formatBadgeCount(count)}
-                      </span>
-                    ) : null}
-                  </Link>
-                );
-              })}
+      {mobileOpen ? (
+        <div className="fixed inset-0 z-50 xl:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            className="absolute inset-0 bg-slate-950/35 backdrop-blur-[2px]"
+            aria-label="إغلاق القائمة الجانبية"
+          />
+          <aside className="admin-panel absolute right-0 top-0 flex h-full w-[min(86vw,320px)] flex-col rounded-none border-y-0 border-r-0">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200/70 px-4 py-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">{roleLabel}</p>
+                <p className="mt-1 text-xs text-[var(--text-subtle)]">
+                  تنقّل بين أقسام لوحة التحكم.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:text-slate-900"
+                aria-label="إغلاق"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-          );
-        })}
-      </nav>
-    </aside>
+            <div className="flex items-center gap-2 border-b border-slate-200/70 px-4 py-3">
+              {pendingCount > 0 ? (
+                <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700">
+                  {formatBadgeCount(pendingCount)}
+                </span>
+              ) : null}
+              <kbd className="hidden items-center gap-0.5 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 sm:inline-flex">
+                ⌘K
+              </kbd>
+            </div>
+            <nav className="flex-1 overflow-y-auto p-2">{renderNavSections()}</nav>
+          </aside>
+        </div>
+      ) : null}
+
+      <aside className="admin-panel hidden overflow-hidden rounded-[28px] xl:block">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200/70 px-4 py-3">
+          <p className="text-sm font-semibold text-slate-900">{roleLabel}</p>
+          <div className="flex items-center gap-2">
+            {pendingCount > 0 ? (
+              <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700">
+                {formatBadgeCount(pendingCount)}
+              </span>
+            ) : null}
+            <kbd className="hidden items-center gap-0.5 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 sm:inline-flex">
+              ⌘K
+            </kbd>
+          </div>
+        </div>
+
+        <nav className="flex flex-col gap-3 p-2">{renderNavSections()}</nav>
+      </aside>
+    </>
   );
 }
