@@ -161,7 +161,10 @@ export async function AirportRequestsList({ serviceType, searchParams }: Props) 
               key: "q",
               label: "بحث",
               type: "text",
-              placeholder: "اسم الكفيل أو العاملة أو الهاتف",
+              placeholder:
+                serviceType === "inspection"
+                  ? "رقم الجوال"
+                  : "اسم الكفيل أو العاملة أو الهاتف",
             },
             {
               key: "status",
@@ -212,23 +215,42 @@ export async function AirportRequestsList({ serviceType, searchParams }: Props) 
                 />
               ),
             },
-            { key: "sponsor_name", label: "الكفيل" },
-            {
-              key: "sponsor_phone",
-              label: "هاتف الكفيل",
-              render: (row) => (
-                <span className="font-mono" dir="ltr">
-                  {row.sponsor_phone as string}
-                </span>
-              ),
-            },
-            { key: "worker_name", label: "العاملة" },
-            { key: "worker_nationality", label: "الجنسية" },
-            {
-              key: "flight",
-              label: "موعد الرحلة",
-              render: (row) => row.flightWhen as string,
-            },
+            ...(serviceType === "inspection"
+              ? [
+                  {
+                    key: "sponsor_phone",
+                    label: "رقم الجوال",
+                    render: (row: Record<string, unknown>) => (
+                      <span className="font-mono" dir="ltr">
+                        {row.sponsor_phone as string}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "flight",
+                    label: "موعد التفتيش",
+                    render: (row: Record<string, unknown>) => row.flightWhen as string,
+                  },
+                ]
+              : [
+                  { key: "sponsor_name", label: "الكفيل" },
+                  {
+                    key: "sponsor_phone",
+                    label: "هاتف الكفيل",
+                    render: (row: Record<string, unknown>) => (
+                      <span className="font-mono" dir="ltr">
+                        {row.sponsor_phone as string}
+                      </span>
+                    ),
+                  },
+                  { key: "worker_name", label: "العاملة" },
+                  { key: "worker_nationality", label: "الجنسية" },
+                  {
+                    key: "flight",
+                    label: "موعد الرحلة",
+                    render: (row: Record<string, unknown>) => row.flightWhen as string,
+                  },
+                  ]),
             {
               key: "price",
               label: "المبلغ",

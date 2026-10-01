@@ -48,3 +48,14 @@ const AIRPORT_SERVICE_NAMES: Record<string, string> = {
 export function getAirportServiceName(serviceType: string | null | undefined) {
   return AIRPORT_SERVICE_NAMES[serviceType ?? ""] ?? AIRPORT_SERVICE_NAMES.delivery_inspection;
 }
+
+// One-line summary for lists. Inspection requests only carry a phone number.
+export function describeAirportRequest(r: {
+  service_type?: string | null;
+  sponsor_name?: string | null;
+  sponsor_phone?: string | null;
+  worker_name?: string | null;
+}) {
+  if (r.service_type === "inspection") return `جوال: ${r.sponsor_phone ?? "—"}`;
+  return `الكفيل: ${r.sponsor_name ?? "—"} — العاملة: ${r.worker_name ?? "—"}`;
+}

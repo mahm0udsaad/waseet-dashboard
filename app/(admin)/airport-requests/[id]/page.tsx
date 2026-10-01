@@ -76,6 +76,7 @@ export default async function AirportRequestDetailPage({ params }: Props) {
   };
 
   const servicePage = airportServicePageFor(request.service_type);
+  const isInspection = request.service_type === "inspection";
 
   const canApprove = request.status === "awaiting_admin_transfer_approval";
   const canStart = request.status === "paid";
@@ -118,46 +119,21 @@ export default async function AirportRequestDetailPage({ params }: Props) {
         )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <SectionCard title="بيانات الكفيل" description="معلومات التواصل مع الكفيل.">
+      {isInspection ? (
+        <SectionCard title="بيانات التفتيش" description="رقم التواصل وموعد التفتيش.">
           <dl className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-slate-500">الاسم</dt>
-              <dd className="text-slate-900">{request.sponsor_name}</dd>
-            </div>
             <div className="flex justify-between">
               <dt className="text-slate-500">رقم الجوال</dt>
               <dd className="font-mono text-slate-900" dir="ltr">
                 {request.sponsor_phone}
               </dd>
             </div>
-            {request.sponsor_alt_phone && (
-              <div className="flex justify-between">
-                <dt className="text-slate-500">رقم بديل</dt>
-                <dd className="font-mono text-slate-900" dir="ltr">
-                  {request.sponsor_alt_phone}
-                </dd>
-              </div>
-            )}
-          </dl>
-        </SectionCard>
-
-        <SectionCard title="بيانات العاملة والرحلة" description="معلومات العاملة وموعد الرحلة.">
-          <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <dt className="text-slate-500">الاسم</dt>
-              <dd className="text-slate-900">{request.worker_name}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-slate-500">الجنسية</dt>
-              <dd className="text-slate-900">{request.worker_nationality}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-slate-500">تاريخ الرحلة</dt>
+              <dt className="text-slate-500">تاريخ التفتيش</dt>
               <dd className="text-slate-900">{request.flight_date}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-slate-500">وقت الرحلة</dt>
+              <dt className="text-slate-500">وقت التفتيش</dt>
               <dd className="font-mono text-slate-900" dir="ltr">
                 {request.flight_time
                   ? String(request.flight_time).slice(0, 5)
@@ -166,7 +142,57 @@ export default async function AirportRequestDetailPage({ params }: Props) {
             </div>
           </dl>
         </SectionCard>
-      </div>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <SectionCard title="بيانات الكفيل" description="معلومات التواصل مع الكفيل.">
+            <dl className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-slate-500">الاسم</dt>
+                <dd className="text-slate-900">{request.sponsor_name}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-slate-500">رقم الجوال</dt>
+                <dd className="font-mono text-slate-900" dir="ltr">
+                  {request.sponsor_phone}
+                </dd>
+              </div>
+              {request.sponsor_alt_phone && (
+                <div className="flex justify-between">
+                  <dt className="text-slate-500">رقم بديل</dt>
+                  <dd className="font-mono text-slate-900" dir="ltr">
+                    {request.sponsor_alt_phone}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </SectionCard>
+
+          <SectionCard title="بيانات العاملة والرحلة" description="معلومات العاملة وموعد الرحلة.">
+            <dl className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-slate-500">الاسم</dt>
+                <dd className="text-slate-900">{request.worker_name}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-slate-500">الجنسية</dt>
+                <dd className="text-slate-900">{request.worker_nationality}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-slate-500">تاريخ الرحلة</dt>
+                <dd className="text-slate-900">{request.flight_date}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-slate-500">وقت الرحلة</dt>
+                <dd className="font-mono text-slate-900" dir="ltr">
+                  {request.flight_time
+                    ? String(request.flight_time).slice(0, 5)
+                    : "—"}
+                </dd>
+              </div>
+            </dl>
+          </SectionCard>
+        </div>
+      )}
 
       <SectionCard title="مقدم الطلب" description="حساب المستخدم الذي أنشأ الطلب.">
         <dl className="space-y-2 text-sm">
@@ -191,18 +217,20 @@ export default async function AirportRequestDetailPage({ params }: Props) {
         </dl>
       </SectionCard>
 
-      <SectionCard title="المستندات المرفقة" description="صورة التأشيرة النهائية وتذكرة الرحلة.">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <p className="mb-2 text-sm font-medium text-slate-700">تأشيرة الخروج النهائية</p>
-            <AirportRequestDocument url={signedUrls.visa ?? null} label="تأشيرة الخروج" />
+      {!isInspection && (
+        <SectionCard title="المستندات المرفقة" description="صورة التأشيرة النهائية وتذكرة الرحلة.">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="mb-2 text-sm font-medium text-slate-700">تأشيرة الخروج النهائية</p>
+              <AirportRequestDocument url={signedUrls.visa ?? null} label="تأشيرة الخروج" />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-medium text-slate-700">تذكرة الرحلة</p>
+              <AirportRequestDocument url={signedUrls.ticket ?? null} label="تذكرة الرحلة" />
+            </div>
           </div>
-          <div>
-            <p className="mb-2 text-sm font-medium text-slate-700">تذكرة الرحلة</p>
-            <AirportRequestDocument url={signedUrls.ticket ?? null} label="تذكرة الرحلة" />
-          </div>
-        </div>
-      </SectionCard>
+        </SectionCard>
+      )}
 
       <SectionCard title="المعلومات المالية">
         <dl className="space-y-2 text-sm">

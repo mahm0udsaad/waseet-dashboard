@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { describeAirportRequest, getAirportServiceLabel } from "@/lib/airport";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Badge } from "@/components/admin/Badge";
@@ -23,7 +24,7 @@ export default async function AirportChatDetailPage({ params }: Props) {
 
   const { data: request } = await supabase
     .from("airport_inspection_requests")
-    .select("id, conversation_id, user_id, sponsor_name, worker_name, worker_nationality, flight_date, flight_time, status, price, payment_method")
+    .select("id, conversation_id, user_id, service_type, sponsor_name, sponsor_phone, worker_name, worker_nationality, flight_date, flight_time, status, price, payment_method")
     .eq("id", id)
     .maybeSingle();
 
@@ -39,7 +40,7 @@ export default async function AirportChatDetailPage({ params }: Props) {
     <>
       <PageHeader
         title={`محادثة — ${profile?.display_name ?? "مستخدم"}`}
-        subtitle={`الكفيل: ${request.sponsor_name} — العاملة: ${request.worker_name}`}
+        subtitle={describeAirportRequest(request)}
         actions={
           <div className="flex flex-wrap gap-2">
             <Link
@@ -60,10 +61,11 @@ export default async function AirportChatDetailPage({ params }: Props) {
 
       {/* Quick info bar */}
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-light)] p-4">
+        <Badge label={getAirportServiceLabel(request.service_type)} tone="neutral" />
         <Badge label={statusInfo.label} tone={statusInfo.tone} />
         <span className="text-xs text-slate-400">|</span>
         <span className="text-xs text-slate-600">
-          {request.worker_nationality} — {request.flight_date}
+          {request.service_type === "inspection" ? "موعد التفتيش:" : `${request.worker_nationality} —`} {request.flight_date}
           {request.flight_time ? ` ${String(request.flight_time).slice(0, 5)}` : ""}
         </span>
         <span className="text-xs text-slate-400">|</span>

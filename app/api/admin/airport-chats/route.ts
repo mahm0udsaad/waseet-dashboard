@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 
   const { data: requests, error } = await supabase
     .from("airport_inspection_requests")
-    .select("id, conversation_id, user_id, service_type, sponsor_name, worker_name, status, price, created_at, updated_at")
+    .select("id, conversation_id, user_id, service_type, sponsor_name, sponsor_phone, worker_name, status, price, created_at, updated_at")
     .not("conversation_id", "is", null)
     .order("updated_at", { ascending: false });
 
@@ -54,6 +54,7 @@ export async function GET(request: Request) {
       user_phone: profile?.phone ?? null,
       service_type: r.service_type,
       sponsor_name: r.sponsor_name,
+      sponsor_phone: r.sponsor_phone,
       worker_name: r.worker_name,
       status: r.status,
       price: r.price,
