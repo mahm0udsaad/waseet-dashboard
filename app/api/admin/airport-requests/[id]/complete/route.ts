@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAirportServiceName } from "@/lib/airport";
 import { requireRoleForApi } from "@/lib/auth/requireRoleForApi";
 import { logAdminAction } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -14,7 +15,7 @@ export async function POST(
 
   const { data: airportReq } = await supabase
     .from("airport_inspection_requests")
-    .select("user_id")
+    .select("user_id, service_type")
     .eq("id", id)
     .single();
 
@@ -28,7 +29,7 @@ export async function POST(
       recipient_id: airportReq.user_id,
       type: "airport_request_completed",
       title: "تم إكمال الخدمة",
-      body: "تم إكمال خدمة تفتيش وتوصيل المطار بنجاح. شكراً لاستخدام وسيط الآن.",
+      body: `تم إكمال ${getAirportServiceName(airportReq.service_type)} بنجاح. شكراً لاستخدام وسيط الآن.`,
       data: { airport_request_id: id },
     });
   }

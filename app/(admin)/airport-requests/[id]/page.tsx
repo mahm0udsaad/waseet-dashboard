@@ -8,6 +8,7 @@ import { AirportRequestDocument } from "@/components/admin/airport-requests/Airp
 import { AirportRequestChat } from "@/components/admin/airport-requests/AirportRequestChat";
 import { AirportRequestNotesForm } from "@/components/admin/airport-requests/AirportRequestNotesForm";
 import { AirportStartButton } from "@/components/admin/airport-requests/AirportStartButton";
+import { airportServicePageFor, getAirportServiceLabel } from "@/lib/airport";
 import { formatDate, formatNumber } from "@/lib/format";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -74,6 +75,8 @@ export default async function AirportRequestDetailPage({ params }: Props) {
     tone: "neutral" as const,
   };
 
+  const servicePage = airportServicePageFor(request.service_type);
+
   const canApprove = request.status === "awaiting_admin_transfer_approval";
   const canStart = request.status === "paid";
   const canComplete = ["paid", "in_progress"].includes(request.status);
@@ -85,11 +88,11 @@ export default async function AirportRequestDetailPage({ params }: Props) {
   return (
     <>
       <PageHeader
-        title="تفاصيل طلب خدمة المطار"
+        title={`تفاصيل طلب ${getAirportServiceLabel(request.service_type)}`}
         subtitle={`رقم الطلب: ${id}`}
         actions={
           <Link
-            href="/airport-requests"
+            href={servicePage.href}
             className="rounded-full border border-[var(--border)] px-4 py-2 text-sm text-slate-700 transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
           >
             العودة للقائمة
@@ -98,6 +101,9 @@ export default async function AirportRequestDetailPage({ params }: Props) {
       />
 
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-light)] p-4">
+        <span className="text-sm text-slate-600">الخدمة:</span>
+        <Badge label={getAirportServiceLabel(request.service_type)} tone="success" />
+        <span className="text-sm text-slate-400">|</span>
         <span className="text-sm text-slate-600">الحالة الحالية:</span>
         <Badge label={statusInfo.label} tone={statusInfo.tone} />
         {request.payment_method && (

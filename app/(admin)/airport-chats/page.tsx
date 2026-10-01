@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Badge } from "@/components/admin/Badge";
+import { getAirportServiceLabel } from "@/lib/airport";
 import { formatDate } from "@/lib/format";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -20,7 +21,7 @@ export default async function AirportChatsPage() {
   // Get all airport requests with conversations
   const { data: requests } = await supabase
     .from("airport_inspection_requests")
-    .select("id, conversation_id, user_id, sponsor_name, worker_name, status, price, created_at, updated_at")
+    .select("id, conversation_id, user_id, service_type, sponsor_name, worker_name, status, price, created_at, updated_at")
     .not("conversation_id", "is", null)
     .order("updated_at", { ascending: false });
 
@@ -90,6 +91,7 @@ export default async function AirportChatsPage() {
                     <span className="truncate text-sm font-semibold text-slate-900">
                       {profile?.display_name ?? "مستخدم"}
                     </span>
+                    <Badge label={getAirportServiceLabel(r.service_type)} tone="neutral" />
                     <Badge label={statusInfo.label} tone={statusInfo.tone} />
                   </div>
                   <p className="mt-0.5 truncate text-xs text-slate-500">

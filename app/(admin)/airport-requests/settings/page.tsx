@@ -10,23 +10,32 @@ export default async function AirportServiceSettingsPage() {
   const { data: settings } = await supabase
     .from("app_settings")
     .select("key, value")
-    .in("key", ["airport_service_price", "airport_service_active"]);
+    .in("key", [
+      "airport_service_price",
+      "airport_delivery_price",
+      "airport_inspection_price",
+      "airport_service_active",
+    ]);
 
   const settingsMap = new Map(
     (settings ?? []).map((s) => [s.key, s.value as Record<string, unknown>])
   );
 
-  const price = (settingsMap.get("airport_service_price")?.amount as number) ?? 500;
+  const legacyPrice = (settingsMap.get("airport_service_price")?.amount as number) ?? 500;
+  const prices = {
+    delivery: (settingsMap.get("airport_delivery_price")?.amount as number) ?? legacyPrice,
+    inspection: (settingsMap.get("airport_inspection_price")?.amount as number) ?? legacyPrice,
+  };
   const active = (settingsMap.get("airport_service_active")?.enabled as boolean) ?? true;
 
   return (
     <>
       <PageHeader
         title="إعدادات خدمة المطار"
-        subtitle="تحكم في حالة الخدمة وسعرها المعروض للمستخدمين."
+        subtitle="تحكم في حالة الخدمة وأسعار التوصيل والتفتيش المعروضة للمستخدمين."
         actions={
           <Link
-            href="/airport-requests"
+            href="/airport-delivery"
             className="rounded-full border border-[var(--border)] px-4 py-2 text-sm text-slate-700 transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
           >
             العودة للطلبات
@@ -45,7 +54,6 @@ export default async function AirportServiceSettingsPage() {
             method="post"
             className="space-y-3"
           >
-            <input type="hidden" name="price" value={price} />
             <select
               name="active"
               defaultValue={active ? "true" : "false"}
@@ -62,36 +70,37 @@ export default async function AirportServiceSettingsPage() {
           </div>
         </SectionCard>
 
-        {/* Service price */}
-        <SectionCard
-          title="سعر الخدمة"
-          description="السعر الذي يدفعه المستخدم عند تقديم طلب تفتيش مطار."
-        >
-          <form
-            action="/api/admin/airport-requests/settings"
-            method="post"
-            className="space-y-3"
-          >
-            <input type="hidden" name="active" value={active ? "true" : "false"} />
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                name="price"
-                defaultValue={price}
-                min={0}
-                step={1}
-                className="flex-1 rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm"
-                placeholder="500"
-              />
-              <span className="text-sm font-medium text-slate-600">ر.س</span>
-            </div>
-            <ActionButton label="حفظ السعر" variant="primary" />
-          </form>
+        {/* Per-service prices */}
+        {([
+          ["delivery_price", "سعر خدمة التوصيل", "السعر الذي يدفعه المستخدم عند طلب التوصيل للمطار.", prices.delivery],
+          ["inspection_price", "سعر خدمة التفتيش", "السعر الذي يدفعه المستخدم عند طلب التفتيش.", prices.inspection],
+        ] as const).map(([field, title, description, price]) => (
+          <SectionCard key={field} title={title} description={description}>
+            <form
+              action="/api/admin/airport-requests/settings"
+              method="post"
+              className="space-y-3"
+            >
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  name={field}
+                  defaultValue={price}
+                  min={0}
+                  step={1}
+                  className="flex-1 rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm"
+                  placeholder="500"
+                />
+                <span className="text-sm font-medium text-slate-600">ر.س</span>
+              </div>
+              <ActionButton label="حفظ السعر" variant="primary" />
+            </form>
 
-          <div className="mt-4 rounded-xl border border-[var(--border)] bg-slate-50 p-3 text-xs text-slate-500">
-            السعر الحالي: <span className="font-semibold text-slate-700">{price} ر.س</span>. يسري على الطلبات الجديدة فقط.
-          </div>
-        </SectionCard>
+            <div className="mt-4 rounded-xl border border-[var(--border)] bg-slate-50 p-3 text-xs text-slate-500">
+              السعر الحالي: <span className="font-semibold text-slate-700">{price} ر.س</span>. يسري على الطلبات الجديدة فقط.
+            </div>
+          </SectionCard>
+        ))}
       </section>
 
       {/* Status guide */}
@@ -119,7 +128,7 @@ export default async function AirportServiceSettingsPage() {
             {
               status: "قيد التنفيذ",
               color: "bg-violet-500",
-              desc: "الفريق يعمل على تنفيذ خدمة التفتيش والتوصيل.",
+              desc: "الفريق يعمل على تنفيذ الخدمة المطلوبة (توصيل أو تفتيش).",
             },
             {
               status: "مكتمل",

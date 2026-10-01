@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAirportServiceName } from "@/lib/airport";
 import { requireRoleForApi } from "@/lib/auth/requireRoleForApi";
 import { logAdminAction } from "@/lib/supabase/admin";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -15,7 +16,7 @@ export async function POST(
   // 1. Fetch request details (need price + user_id)
   const { data: airportReq } = await supabase
     .from("airport_inspection_requests")
-    .select("id, user_id, price, conversation_id, status")
+    .select("id, user_id, service_type, price, conversation_id, status")
     .eq("id", id)
     .single();
 
@@ -39,6 +40,8 @@ export async function POST(
     conversationId = chatData?.conversation_id ?? null;
   }
 
+  const serviceName = getAirportServiceName(airportReq.service_type);
+
   // 4. Create receipt + send as first message (payment confirmation)
   if (conversationId) {
     const price = airportReq.price ?? 0;
@@ -50,7 +53,7 @@ export async function POST(
         seller_id: auth.userId,
         buyer_id: airportReq.user_id,
         conversation_id: conversationId,
-        description: "خدمة تفتيش وتوصيل المطار",
+        description: serviceName,
         amount: price,
         currency: "SAR",
         status: "seller_signed",
@@ -63,14 +66,14 @@ export async function POST(
       await supabase.from("messages").insert({
         conversation_id: conversationId,
         sender_id: auth.userId,
-        content: `تم تأكيد طلبك لخدمة تفتيش وتوصيل المطار.\nالمبلغ: ${price} ر.س\nفريق وسيط الآن يعمل على طلبك.`,
+        content: `تم تأكيد طلبك لـ${serviceName}.\nالمبلغ: ${price} ر.س\nفريق وسيط الآن يعمل على طلبك.`,
         attachments: [
           {
             type: "receipt",
             receipt_id: receipt.id,
             status: "seller_signed",
             amount: price,
-            description: "خدمة تفتيش وتوصيل المطار",
+            description: serviceName,
           },
         ],
       });

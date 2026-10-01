@@ -21,9 +21,10 @@ export const ADMIN_NAV_ITEMS = [
   { href: "/payments", label: "المدفوعات", description: "متابعة عمليات Paymob", group: "operations" },
   { href: "/withdrawals", label: "طلبات السحب", description: "إدارة المحفظة والتحويل", group: "operations" },
 
-  { href: "/airport-requests", label: "طلبات المطار", description: "طلبات تفتيش وتوصيل المطار", group: "airport" },
-  { href: "/airport-chats", label: "محادثات المطار", description: "محادثات خدمة التفتيش والتوصيل", group: "airport" },
-  { href: "/airport-requests/settings", label: "إعدادات المطار", description: "السعر وحالة تفعيل الخدمة", group: "airport" },
+  { href: "/airport-delivery", label: "طلبات التوصيل", description: "طلبات توصيل العاملات للمطار", group: "airport" },
+  { href: "/airport-inspection", label: "طلبات التفتيش", description: "طلبات تفتيش العاملات قبل السفر", group: "airport" },
+  { href: "/airport-chats", label: "محادثات المطار", description: "محادثات خدمات التوصيل والتفتيش", group: "airport" },
+  { href: "/airport-requests/settings", label: "إعدادات المطار", description: "أسعار الخدمات وحالة التفعيل", group: "airport" },
 
   { href: "/chats", label: "المحادثات", description: "سجل الرسائل والأعضاء", group: "communication" },
   { href: "/support-inbox", label: "صندوق دعم وسيط", description: "الانتظار المفتوح الآن", group: "communication" },
@@ -48,7 +49,8 @@ export const TRACKED_BADGE_PATHS = [
   "/orders",
   "/bank-transfers",
   "/damin-orders",
-  "/airport-requests",
+  "/airport-delivery",
+  "/airport-inspection",
   "/airport-chats",
   "/airport-requests/settings",
   "/completion-requests",
