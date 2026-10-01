@@ -1,6 +1,6 @@
 "use client";
 
-import { IOS_APP_STORE_URL } from "@/lib/app-links";
+import { GOOGLE_PLAY_URL, IOS_APP_STORE_URL } from "@/lib/app-links";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
@@ -43,7 +43,7 @@ export function CTA() {
                         </Link>
                         
                         <Link 
-                            href="https://play.google.com" 
+                            href={GOOGLE_PLAY_URL}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="bg-transparent border-2 border-white/20 text-white px-8 py-4 rounded-2xl hover:bg-white/10 transition-all hover:scale-105 flex items-center gap-4 w-full sm:w-auto justify-center sm:justify-start"

@@ -11,7 +11,8 @@ export const SITE_URL =
 export const IOS_APP_STORE_URL =
   "https://apps.apple.com/us/app/%D9%88%D8%B3%D9%8A%D8%B7-%D8%A7%D9%84%D8%A2%D9%86/id6756179253";
 
-export const GOOGLE_PLAY_URL = `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE_NAME}`;
+export const GOOGLE_PLAY_URL =
+  "https://play.google.com/store/apps/details?id=com.wasitalan.app";
 
 // Apple App ID = <TeamID>.<BundleIdentifier>
 // Team ID U99WN82SXG comes from eas.json submit.production.ios.appleTeamId.
